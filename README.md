@@ -1,27 +1,21 @@
-# ExabeamEnhancementSuite
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 11.1.3.
+# Exabeam Enhancement Suite
 
-## Development server
+This project is a Google Chrome extension that adds additional features to Exabeam Advanced Analytics
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The app will automatically reload if you change any of the source files.
+  **Features:**
+ - Rule Tuning Wizard
+ - Data Validation
 
-## Code scaffolding
+## How to use
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
-
-## Build
-
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory. Use the `--prod` flag for a production build.
+ 1. Download the latest compiled release (LINK).
+ 2. Unzip folder "exabeam-enhancement-suite".
+ 3. Open "chrome://extensions/" in Google Chrome.
+ 4. Enable "Developer Mode" in the top right corner.
+ 5. Click "Load Unpacked" and select the unzipped folder "exabeam-enhancement-suite".
+ 6. Open Exabeam Advanced Analytics in a new tab and scroll to the bottom on the page.
 
 ## Running unit tests
 
 Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
-
-## Running end-to-end tests
-
-Run `ng e2e` to execute the end-to-end tests via [Protractor](http://www.protractortest.org/).
-
-## Further help
-
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
