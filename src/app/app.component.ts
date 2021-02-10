@@ -1169,7 +1169,16 @@ export class AppComponent implements OnInit, AfterViewInit  {
        this.activeEventTypes++
        chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
         chrome.tabs.sendMessage(tabs[0].id, {message: "eventTypeSearch", eventType: obj}, (response) => {
-          this.activeEventTypes--
+          if(typeof response == 'undefined') {
+            console.log ('response is undefined');
+            this.errors.push('error fetching all session IDs for event type: '+obj.name+'. Trying again');
+            this.errorVisible = true;     
+            for (var a = 0; a < this.doneEventTypes.length; a++) {
+              if(this.doneEventTypes[a].name === obj.name) this.doneEventTypes.splice(a, 1);
+            }              
+            this.getEventTypeSessions(offset);
+          } else {
+            this.activeEventTypes--
           this.eventTypes.forEach((obj2, index2) => {
             if(obj.name === obj2.name) {
               console.log('got response for '+obj.name);
@@ -1332,6 +1341,8 @@ export class AppComponent implements OnInit, AfterViewInit  {
               
             }
           })
+          }
+          
         });
       });       
       }     

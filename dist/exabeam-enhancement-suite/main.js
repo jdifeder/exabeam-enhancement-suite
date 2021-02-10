@@ -26,17 +26,7 @@ __webpack_require__.r(__webpack_exports__);
 // `ng build --prod` replaces `environment.ts` with `environment.prod.ts`.
 // The list of file replacements can be found in `angular.json`.
 const environment = {
-    production: false,
-    firebase: {
-        apiKey: "AIzaSyDP3kIGNpiVL0ny9nJB8VW06vNHwixxKpQ",
-        authDomain: "exabeam-cloud.firebaseapp.com",
-        databaseURL: "https://exabeam-cloud.firebaseio.com",
-        projectId: "exabeam-cloud",
-        storageBucket: "exabeam-cloud.appspot.com",
-        messagingSenderId: "634876328937",
-        appId: "1:634876328937:web:269cdcf4c9158c83cfe978",
-        measurementId: "G-8L9NKVGR7Y"
-    }
+    production: false
 };
 /*
  * For easier debugging in development mode, you can import the following file
@@ -2315,179 +2305,191 @@ class AppComponent {
                 this.activeEventTypes++;
                 chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                     chrome.tabs.sendMessage(tabs[0].id, { message: "eventTypeSearch", eventType: obj }, (response) => {
-                        this.activeEventTypes--;
-                        this.eventTypes.forEach((obj2, index2) => {
-                            if (obj.name === obj2.name) {
-                                console.log('got response for ' + obj.name);
-                                obj2.response = response;
-                                obj2.totalCount = 0;
-                                obj2.rules = [];
-                                obj2.models = [];
-                                obj2.sessionEventDetails = [];
-                                obj2.sessionEventFields = [];
-                                obj2.todoSessionIDs = [];
-                                obj2.doneSessionIDs = [];
-                                obj2.todoAssetIDs = [];
-                                obj2.todoAssetIDs = [];
-                                obj2.todoSessionEventIDs = [];
-                                obj2.doneSessionEventIDs = [];
-                                obj2.todoAssetEventIDs = [];
-                                obj2.doneAssetEventIDs = [];
-                                obj2.assetEventDetails = [];
-                                obj2.assetEventFields = [];
-                                obj2.assetEventIDs = [];
-                                obj2.requiredEventFields = [];
-                                obj2.presentEventFields = [];
-                                obj2.missingEventFields = [];
-                                obj2.missingEventFieldTable = [];
-                                obj2.fieldsPopulating = 0;
-                                obj2.fieldsPopulatingPercent = 0;
-                                obj2.modelsPopulating = 0;
-                                obj2.modelsPopulatingPercent = 0;
-                                obj2.rulesCouldTrigger = 0;
-                                obj2.rulesCouldTriggerPercent = 0;
-                                obj2.uniqueUsersList = [];
-                                obj2.uniqueHostsList = [];
-                                obj2.uniqueIPsList = [];
-                                obj2.uniqueUsers = 0;
-                                obj2.uniqueHosts = 0;
-                                obj2.uniqueIPs = 0;
-                                if (obj2.response.entities.session != undefined) {
-                                    obj2.response.entities.session.forEach((obj3, index3) => {
-                                        if (!obj3.sessionInfo.username.endsWith('$')) {
-                                            if (obj2.uniqueUsersList.some(user => user.name === obj3.sessionInfo.username.toLowerCase())) {
-                                            }
-                                            else {
-                                                obj2.uniqueUsers = obj2.uniqueUsers + 1;
-                                                obj2.uniqueUsersList.push({ 'name': obj3.sessionInfo.username.toLowerCase() });
-                                            }
-                                            if (this.summary.uniqueUsers.some(user => user.name === obj3.sessionInfo.username.toLowerCase())) {
-                                            }
-                                            else {
-                                                this.summary.uniqueUsers.push({ 'name': obj3.sessionInfo.username.toLowerCase() });
-                                                this.summary.uniqueUserCount = this.summary.uniqueUserCount + 1;
-                                            }
-                                        }
-                                    });
-                                }
-                                if (obj2.response.entities.asset != undefined) {
-                                    obj2.response.entities.asset.forEach((obj3, index3) => {
-                                        if (!((obj3.assetSequenceInfo.assetId.match(/\d\./g) || []).length === 3)) {
-                                            if (!((obj3.assetSequenceInfo.assetId.match(/\:/g) || []).length >= 1)) {
-                                                if (obj2.uniqueHostsList.some(user => user.name === obj3.assetSequenceInfo.assetId.toLowerCase())) {
+                        if (typeof response == 'undefined') {
+                            console.log('response is undefined');
+                            this.errors.push('error fetching all session IDs for event type: ' + obj.name + '. Trying again');
+                            this.errorVisible = true;
+                            for (var a = 0; a < this.doneEventTypes.length; a++) {
+                                if (this.doneEventTypes[a].name === obj.name)
+                                    this.doneEventTypes.splice(a, 1);
+                            }
+                            this.getEventTypeSessions(offset);
+                        }
+                        else {
+                            this.activeEventTypes--;
+                            this.eventTypes.forEach((obj2, index2) => {
+                                if (obj.name === obj2.name) {
+                                    console.log('got response for ' + obj.name);
+                                    obj2.response = response;
+                                    obj2.totalCount = 0;
+                                    obj2.rules = [];
+                                    obj2.models = [];
+                                    obj2.sessionEventDetails = [];
+                                    obj2.sessionEventFields = [];
+                                    obj2.todoSessionIDs = [];
+                                    obj2.doneSessionIDs = [];
+                                    obj2.todoAssetIDs = [];
+                                    obj2.todoAssetIDs = [];
+                                    obj2.todoSessionEventIDs = [];
+                                    obj2.doneSessionEventIDs = [];
+                                    obj2.todoAssetEventIDs = [];
+                                    obj2.doneAssetEventIDs = [];
+                                    obj2.assetEventDetails = [];
+                                    obj2.assetEventFields = [];
+                                    obj2.assetEventIDs = [];
+                                    obj2.requiredEventFields = [];
+                                    obj2.presentEventFields = [];
+                                    obj2.missingEventFields = [];
+                                    obj2.missingEventFieldTable = [];
+                                    obj2.fieldsPopulating = 0;
+                                    obj2.fieldsPopulatingPercent = 0;
+                                    obj2.modelsPopulating = 0;
+                                    obj2.modelsPopulatingPercent = 0;
+                                    obj2.rulesCouldTrigger = 0;
+                                    obj2.rulesCouldTriggerPercent = 0;
+                                    obj2.uniqueUsersList = [];
+                                    obj2.uniqueHostsList = [];
+                                    obj2.uniqueIPsList = [];
+                                    obj2.uniqueUsers = 0;
+                                    obj2.uniqueHosts = 0;
+                                    obj2.uniqueIPs = 0;
+                                    if (obj2.response.entities.session != undefined) {
+                                        obj2.response.entities.session.forEach((obj3, index3) => {
+                                            if (!obj3.sessionInfo.username.endsWith('$')) {
+                                                if (obj2.uniqueUsersList.some(user => user.name === obj3.sessionInfo.username.toLowerCase())) {
                                                 }
                                                 else {
-                                                    obj2.uniqueHosts = obj2.uniqueHosts + 1;
-                                                    obj2.uniqueHostsList.push({ 'name': obj3.assetSequenceInfo.assetId.toLowerCase() });
+                                                    obj2.uniqueUsers = obj2.uniqueUsers + 1;
+                                                    obj2.uniqueUsersList.push({ 'name': obj3.sessionInfo.username.toLowerCase() });
                                                 }
-                                                if (this.summary.uniqueHosts.some(user => user.name === obj3.assetSequenceInfo.assetId.toLowerCase())) {
+                                                if (this.summary.uniqueUsers.some(user => user.name === obj3.sessionInfo.username.toLowerCase())) {
                                                 }
                                                 else {
-                                                    this.summary.uniqueHosts.push({ 'name': obj3.assetSequenceInfo.assetId.toLowerCase() });
-                                                    this.summary.uniqueHostCount = this.summary.uniqueHostCount + 1;
+                                                    this.summary.uniqueUsers.push({ 'name': obj3.sessionInfo.username.toLowerCase() });
+                                                    this.summary.uniqueUserCount = this.summary.uniqueUserCount + 1;
                                                 }
                                             }
-                                        }
+                                        });
+                                    }
+                                    if (obj2.response.entities.asset != undefined) {
+                                        obj2.response.entities.asset.forEach((obj3, index3) => {
+                                            if (!((obj3.assetSequenceInfo.assetId.match(/\d\./g) || []).length === 3)) {
+                                                if (!((obj3.assetSequenceInfo.assetId.match(/\:/g) || []).length >= 1)) {
+                                                    if (obj2.uniqueHostsList.some(user => user.name === obj3.assetSequenceInfo.assetId.toLowerCase())) {
+                                                    }
+                                                    else {
+                                                        obj2.uniqueHosts = obj2.uniqueHosts + 1;
+                                                        obj2.uniqueHostsList.push({ 'name': obj3.assetSequenceInfo.assetId.toLowerCase() });
+                                                    }
+                                                    if (this.summary.uniqueHosts.some(user => user.name === obj3.assetSequenceInfo.assetId.toLowerCase())) {
+                                                    }
+                                                    else {
+                                                        this.summary.uniqueHosts.push({ 'name': obj3.assetSequenceInfo.assetId.toLowerCase() });
+                                                        this.summary.uniqueHostCount = this.summary.uniqueHostCount + 1;
+                                                    }
+                                                }
+                                            }
+                                        });
+                                    }
+                                    if (obj2.response.entities.lockout != undefined) {
+                                        obj2.response.entities.lockout.forEach((obj3, index3) => {
+                                            if (!obj3.lockoutInfo.username.endsWith('$')) {
+                                                if (obj2.uniqueUsersList.some(user => user.name === obj3.lockoutInfo.username.toLowerCase())) {
+                                                }
+                                                else {
+                                                    obj2.uniqueUsers = obj2.uniqueUsers + 1;
+                                                    obj2.uniqueUsersList.push({ 'name': obj3.lockoutInfo.username.toLowerCase() });
+                                                }
+                                                if (this.summary.uniqueUsers.some(user => user.name === obj3.lockoutInfo.username.toLowerCase())) {
+                                                }
+                                                else {
+                                                    this.summary.uniqueUsers.push({ 'name': obj3.lockoutInfo.username.toLowerCase() });
+                                                    this.summary.uniqueUserCount = this.summary.uniqueUserCount + 1;
+                                                }
+                                            }
+                                        });
+                                    }
+                                    obj2.sequenceTypes = [];
+                                    Object.keys(obj2.response.entities).forEach((obj3, index3) => {
+                                        if (obj3 != 'session' && obj3 != 'asset' && obj3 != 'lockout')
+                                            obj2.sequenceTypes.push(obj3);
                                     });
-                                }
-                                if (obj2.response.entities.lockout != undefined) {
-                                    obj2.response.entities.lockout.forEach((obj3, index3) => {
-                                        if (!obj3.lockoutInfo.username.endsWith('$')) {
-                                            if (obj2.uniqueUsersList.some(user => user.name === obj3.lockoutInfo.username.toLowerCase())) {
+                                    obj2.sequenceTypes.forEach((obj3, index3) => {
+                                        obj2.response.entities[obj3].forEach((obj4, index4) => {
+                                            if (!obj4.dataFeedInfo.username.endsWith('$')) {
+                                                if (obj2.uniqueUsersList.some(user => user.name === obj4.dataFeedInfo.username.toLowerCase())) {
+                                                }
+                                                else {
+                                                    obj2.uniqueUsers = obj2.uniqueUsers + 1;
+                                                    obj2.uniqueUsersList.push({ 'name': obj4.dataFeedInfo.username.toLowerCase() });
+                                                }
+                                                if (this.summary.uniqueUsers.some(user => user.name === obj4.dataFeedInfo.username.toLowerCase())) {
+                                                }
+                                                else {
+                                                    this.summary.uniqueUsers.push({ 'name': obj4.dataFeedInfo.username.toLowerCase() });
+                                                    this.summary.uniqueUserCount = this.summary.uniqueUserCount + 1;
+                                                }
                                             }
-                                            else {
-                                                obj2.uniqueUsers = obj2.uniqueUsers + 1;
-                                                obj2.uniqueUsersList.push({ 'name': obj3.lockoutInfo.username.toLowerCase() });
-                                            }
-                                            if (this.summary.uniqueUsers.some(user => user.name === obj3.lockoutInfo.username.toLowerCase())) {
-                                            }
-                                            else {
-                                                this.summary.uniqueUsers.push({ 'name': obj3.lockoutInfo.username.toLowerCase() });
-                                                this.summary.uniqueUserCount = this.summary.uniqueUserCount + 1;
-                                            }
-                                        }
+                                        });
                                     });
-                                }
-                                obj2.sequenceTypes = [];
-                                Object.keys(obj2.response.entities).forEach((obj3, index3) => {
-                                    if (obj3 != 'session' && obj3 != 'asset' && obj3 != 'lockout')
-                                        obj2.sequenceTypes.push(obj3);
-                                });
-                                obj2.sequenceTypes.forEach((obj3, index3) => {
-                                    obj2.response.entities[obj3].forEach((obj4, index4) => {
-                                        if (!obj4.dataFeedInfo.username.endsWith('$')) {
-                                            if (obj2.uniqueUsersList.some(user => user.name === obj4.dataFeedInfo.username.toLowerCase())) {
-                                            }
-                                            else {
-                                                obj2.uniqueUsers = obj2.uniqueUsers + 1;
-                                                obj2.uniqueUsersList.push({ 'name': obj4.dataFeedInfo.username.toLowerCase() });
-                                            }
-                                            if (this.summary.uniqueUsers.some(user => user.name === obj4.dataFeedInfo.username.toLowerCase())) {
-                                            }
-                                            else {
-                                                this.summary.uniqueUsers.push({ 'name': obj4.dataFeedInfo.username.toLowerCase() });
-                                                this.summary.uniqueUserCount = this.summary.uniqueUserCount + 1;
-                                            }
-                                        }
-                                    });
-                                });
-                                if (obj2.response.entities.endpoint != undefined) {
-                                    obj2.inEndpoint = true;
-                                    obj2.endpointCount = obj2.response.entities.endpoint.length;
-                                    obj2.totalCount = obj2.totalCount + obj2.response.entities.endpoint.length;
-                                }
-                                if (obj2.response.entities.file != undefined) {
-                                    obj2.inFile = true;
-                                    obj2.fileCount = obj2.response.entities.file.length;
-                                    obj2.totalCount = obj2.totalCount + obj2.response.entities.file.length;
-                                }
-                                if (obj2.response.entities.web != undefined) {
-                                    obj2.inWeb = true;
-                                    obj2.webCount = obj2.response.entities.web.length;
-                                    obj2.totalCount = obj2.totalCount + obj2.response.entities.web.length;
-                                }
-                                if (obj2.response.entities.database != undefined) {
-                                    obj2.inDatabase = true;
-                                    obj2.databaseCount = obj2.response.entities.database.length;
-                                    obj2.totalCount = obj2.totalCount + obj2.response.entities.database.length;
-                                }
-                                if (obj2.response.entities.lockout != undefined) {
-                                    obj2.inLockout = true;
-                                    obj2.lockoutCount = obj2.response.entities.lockout.length;
-                                    obj2.totalCount = obj2.totalCount + obj2.response.entities.lockout.length;
-                                }
-                                if (Object.keys(obj2.response.entities).length != 0) {
-                                    obj2.populating = true;
-                                }
-                                else {
-                                    obj2.populating = false;
-                                }
-                                //console.log('counter BEFORE = ',counter);
-                                counter = counter + 1;
-                                //console.log('counter AFTER = ',counter);            
-                                //console.log('counter: '+counter+' for offset: '+offset);
-                                //console.log('tempKeys.length = ',tempKeys.length);
-                                //console.log('this.doneCountEventTypes BEFORE = ',this.doneCountEventTypes);             
-                                this.doneCountEventTypes = this.doneCountEventTypes + 1;
-                                //console.log('this.doneCountEventTypes AFTER = ',this.doneCountEventTypes);
-                                //console.log('this.dataValidationProgress BEFORE = ',this.dataValidationProgress);
-                                this.dataValidationProgress = Math.round((((this.doneCountEventTypes / this.todoEventTypes) * 20) + 40));
-                                //console.log('this.dataValidationProgress AFTER = ',this.dataValidationProgress);
-                                this.ref.detectChanges();
-                                if (counter === this.allowedEventTypeCount + 1 || this.todoEventTypes - this.doneCountEventTypes === 0) {
-                                    offset = offset + 1;
-                                    ;
-                                    if (this.doneCountEventTypes < tempKeys.length) {
-                                        //console.log('short, running again');
-                                        this.getEventTypeSessions(offset);
+                                    if (obj2.response.entities.endpoint != undefined) {
+                                        obj2.inEndpoint = true;
+                                        obj2.endpointCount = obj2.response.entities.endpoint.length;
+                                        obj2.totalCount = obj2.totalCount + obj2.response.entities.endpoint.length;
+                                    }
+                                    if (obj2.response.entities.file != undefined) {
+                                        obj2.inFile = true;
+                                        obj2.fileCount = obj2.response.entities.file.length;
+                                        obj2.totalCount = obj2.totalCount + obj2.response.entities.file.length;
+                                    }
+                                    if (obj2.response.entities.web != undefined) {
+                                        obj2.inWeb = true;
+                                        obj2.webCount = obj2.response.entities.web.length;
+                                        obj2.totalCount = obj2.totalCount + obj2.response.entities.web.length;
+                                    }
+                                    if (obj2.response.entities.database != undefined) {
+                                        obj2.inDatabase = true;
+                                        obj2.databaseCount = obj2.response.entities.database.length;
+                                        obj2.totalCount = obj2.totalCount + obj2.response.entities.database.length;
+                                    }
+                                    if (obj2.response.entities.lockout != undefined) {
+                                        obj2.inLockout = true;
+                                        obj2.lockoutCount = obj2.response.entities.lockout.length;
+                                        obj2.totalCount = obj2.totalCount + obj2.response.entities.lockout.length;
+                                    }
+                                    if (Object.keys(obj2.response.entities).length != 0) {
+                                        obj2.populating = true;
                                     }
                                     else {
-                                        console.log('starting to get session details');
-                                        this.getEventTypeSessionDetails(0);
+                                        obj2.populating = false;
+                                    }
+                                    //console.log('counter BEFORE = ',counter);
+                                    counter = counter + 1;
+                                    //console.log('counter AFTER = ',counter);            
+                                    //console.log('counter: '+counter+' for offset: '+offset);
+                                    //console.log('tempKeys.length = ',tempKeys.length);
+                                    //console.log('this.doneCountEventTypes BEFORE = ',this.doneCountEventTypes);             
+                                    this.doneCountEventTypes = this.doneCountEventTypes + 1;
+                                    //console.log('this.doneCountEventTypes AFTER = ',this.doneCountEventTypes);
+                                    //console.log('this.dataValidationProgress BEFORE = ',this.dataValidationProgress);
+                                    this.dataValidationProgress = Math.round((((this.doneCountEventTypes / this.todoEventTypes) * 20) + 40));
+                                    //console.log('this.dataValidationProgress AFTER = ',this.dataValidationProgress);
+                                    this.ref.detectChanges();
+                                    if (counter === this.allowedEventTypeCount + 1 || this.todoEventTypes - this.doneCountEventTypes === 0) {
+                                        offset = offset + 1;
+                                        ;
+                                        if (this.doneCountEventTypes < tempKeys.length) {
+                                            //console.log('short, running again');
+                                            this.getEventTypeSessions(offset);
+                                        }
+                                        else {
+                                            console.log('starting to get session details');
+                                            this.getEventTypeSessionDetails(0);
+                                        }
                                     }
                                 }
-                            }
-                        });
+                            });
+                        }
                     });
                 });
             }
