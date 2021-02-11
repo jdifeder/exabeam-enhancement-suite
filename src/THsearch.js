@@ -17,7 +17,7 @@ document.body.appendChild(ifrm);
 //el.parentNode.insertBefore(ifrm, el);
 
 // assign url
-ifrm.setAttribute('src', 'chrome-extension://mpkanlljbfdlenkobodnebhngpfgilek/index.html');
+ifrm.setAttribute('src', 'chrome-extension://kblcngmeegodfjoeglkjadepcoopjodo/index.html');
 ifrm.setAttribute('style', 'width:100%;height:100%');
 
 chrome.runtime.onMessage.addListener(
