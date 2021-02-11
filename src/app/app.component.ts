@@ -627,6 +627,8 @@ export class AppComponent implements OnInit, AfterViewInit  {
       { field: 'score', header: 'Score' }
     ];
 
+    this.ref.detectChanges();
+
     
 
   }

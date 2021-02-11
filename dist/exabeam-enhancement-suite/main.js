@@ -1777,6 +1777,7 @@ class AppComponent {
             { field: 'count', header: 'Rule Count' },
             { field: 'score', header: 'Score' }
         ];
+        this.ref.detectChanges();
     }
     onRowSelect(event) {
         this.selectedRule = event.data.rule;
