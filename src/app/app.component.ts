@@ -362,7 +362,8 @@ export class AppComponent implements OnInit, AfterViewInit  {
         this.thResultsUsers.sessions[this.index].riskScore = this.thResults.entities.session[this.index].sessionInfo.riskScore;  
       }
       this.getSessions(0);
-    }  
+    }
+    this.ref.detectChanges();  
     //Take all of those session IDs and get all the triggered rules and their underlying events, add them to the array
   }
 
@@ -426,6 +427,7 @@ export class AppComponent implements OnInit, AfterViewInit  {
       }
       
     })
+    this.ref.detectChanges();
       
   }
 
@@ -478,6 +480,7 @@ export class AppComponent implements OnInit, AfterViewInit  {
       }
       
     })
+    this.ref.detectChanges();
       
   }
 
@@ -640,11 +643,13 @@ export class AppComponent implements OnInit, AfterViewInit  {
     this.selectedRuleSessionCount = event.data.sessionCount;
     this.setEvents(event.data.rule);
     this.showEvents = true;
+    this.ref.detectChanges();
   }
 
   toggleShowEvents() {
     this.showEvents = false;
-    this.showHome = true; 
+    this.showHome = true;
+    this.ref.detectChanges(); 
     }
 
   setEvents(ruleName) {
@@ -712,6 +717,7 @@ export class AppComponent implements OnInit, AfterViewInit  {
         }      
       })       
     }
+    this.ref.detectChanges();
 
   }
 
@@ -887,6 +893,7 @@ export class AppComponent implements OnInit, AfterViewInit  {
           //location.reload();
         }
       )
+      this.ref.detectChanges();
   }
   
   
@@ -909,6 +916,7 @@ export class AppComponent implements OnInit, AfterViewInit  {
           this.errorVisible = true;
         }
       )
+      this.ref.detectChanges();
   }
 
   checkModels(offset) {
@@ -968,6 +976,7 @@ export class AppComponent implements OnInit, AfterViewInit  {
       }
       
     })
+    this.ref.detectChanges();
     
   }
 
@@ -1037,6 +1046,7 @@ export class AppComponent implements OnInit, AfterViewInit  {
         }
       )
     })
+    this.ref.detectChanges();
       
   }
 
@@ -1059,6 +1069,7 @@ export class AppComponent implements OnInit, AfterViewInit  {
         
       })
     })
+    this.ref.detectChanges();
     this.findRequiredData();
   }
 
@@ -1125,6 +1136,7 @@ export class AppComponent implements OnInit, AfterViewInit  {
           obj.ruleDef.requiredEvents = obj.ruleDef.ruleEventTypes;
         }     
     })
+    this.ref.detectChanges();
     this.getEventTypes();
   }
 
@@ -1140,6 +1152,7 @@ export class AppComponent implements OnInit, AfterViewInit  {
         })
       }
     })
+    this.ref.detectChanges();
     this.getEventTypeSessions(0);  
     
     
@@ -1348,7 +1361,8 @@ export class AppComponent implements OnInit, AfterViewInit  {
         });
       });       
       }     
-    })     
+    })
+    this.ref.detectChanges();     
   }
 
 
@@ -1417,7 +1431,8 @@ export class AppComponent implements OnInit, AfterViewInit  {
           })
         }
       })
-    }) 
+    })
+    this.ref.detectChanges(); 
   }
 
   getEventTypeAssetDetails(offset){
@@ -1483,7 +1498,8 @@ export class AppComponent implements OnInit, AfterViewInit  {
           })
         }
       })
-    }) 
+    })
+    this.ref.detectChanges(); 
   }
 
 
@@ -1566,6 +1582,7 @@ export class AppComponent implements OnInit, AfterViewInit  {
         }
       })
     })
+    this.ref.detectChanges();
   }
 
   checkEventTypeAssetDetails(offset) {
@@ -1642,6 +1659,7 @@ export class AppComponent implements OnInit, AfterViewInit  {
         }
       })
     })
+    this.ref.detectChanges();
   }
 
 
@@ -1695,6 +1713,7 @@ export class AppComponent implements OnInit, AfterViewInit  {
       })
       
     })
+    this.ref.detectChanges();
     this.addEventDetails()
   }
 
@@ -1868,6 +1887,7 @@ export class AppComponent implements OnInit, AfterViewInit  {
         } 
       })
     })
+    this.ref.detectChanges();
   }
 
   exportExcel(table) {
@@ -1894,6 +1914,7 @@ export class AppComponent implements OnInit, AfterViewInit  {
     this.selectedRequiredEventTypes = required;
     this.selectedPresentEventTypes = present;
     this.visibleMissingEventTypes = true;
+    this.ref.detectChanges();
   }
   
   onEventFieldsSelect(required,present,missing, missingTable) {
@@ -1902,30 +1923,36 @@ export class AppComponent implements OnInit, AfterViewInit  {
     this.selectedMissingEventFields = missing;
     this.selectedMissingEventFieldTable = missingTable;
     this.visibleMissingEventFields = true;
+    this.ref.detectChanges();
   }
 
   onRuleSelect(rule) {
     this.selectedRule = rule;
     this.visibleRule = true;
+    this.ref.detectChanges();
   }
 
   onModelSelect(model) {
     this.selectedModel = model;
     this.visibleModel = true;
+    this.ref.detectChanges();
   }
 
   onUsersSelect(users) {
     this.selectedUserList = users;
     this.visibleUserList = true;
+    this.ref.detectChanges();
   }
 
   onHostsSelect(hosts) {
     this.selectedHostList = hosts;
     this.visibleHostList = true;
+    this.ref.detectChanges();
   }
 
   onServerSelect(){
     this.visibleServer = true;
+    this.ref.detectChanges();
   }
 
   

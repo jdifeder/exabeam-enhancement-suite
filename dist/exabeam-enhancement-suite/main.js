@@ -1527,6 +1527,7 @@ class AppComponent {
             }
             this.getSessions(0);
         }
+        this.ref.detectChanges();
         //Take all of those session IDs and get all the triggered rules and their underlying events, add them to the array
     }
     getSessions(offset) {
@@ -1587,6 +1588,7 @@ class AppComponent {
                 });
             }
         });
+        this.ref.detectChanges();
     }
     getSequences(offset) {
         this.visibleTuningProgress = true;
@@ -1636,6 +1638,7 @@ class AppComponent {
                 });
             }
         });
+        this.ref.detectChanges();
     }
     arraySum() {
         //Setup array to count what users have triggered sessions and their total scores
@@ -1786,10 +1789,12 @@ class AppComponent {
         this.selectedRuleSessionCount = event.data.sessionCount;
         this.setEvents(event.data.rule);
         this.showEvents = true;
+        this.ref.detectChanges();
     }
     toggleShowEvents() {
         this.showEvents = false;
         this.showHome = true;
+        this.ref.detectChanges();
     }
     setEvents(ruleName) {
         this.tempCount = 0;
@@ -1861,6 +1866,7 @@ class AppComponent {
                 }
             });
         }
+        this.ref.detectChanges();
     }
     tuneRule(data) {
         this.foundRule = false;
@@ -2021,6 +2027,7 @@ class AppComponent {
             alert('ERROR fetching data: Check your URL and authenticaiton details and try again');
             //location.reload();
         });
+        this.ref.detectChanges();
     }
     getModels() {
         //Get all models
@@ -2037,6 +2044,7 @@ class AppComponent {
             this.errors.push('Error fetching all models');
             this.errorVisible = true;
         });
+        this.ref.detectChanges();
     }
     checkModels(offset) {
         var counter = 0;
@@ -2096,6 +2104,7 @@ class AppComponent {
                 });
             }
         });
+        this.ref.detectChanges();
     }
     checkRules(offset) {
         var counter = 0;
@@ -2168,6 +2177,7 @@ class AppComponent {
                     this.combineArrays();
             });
         });
+        this.ref.detectChanges();
     }
     combineArrays() {
         this.rulesAndModels = [];
@@ -2188,6 +2198,7 @@ class AppComponent {
                 }
             });
         });
+        this.ref.detectChanges();
         this.findRequiredData();
     }
     findRequiredData() {
@@ -2262,6 +2273,7 @@ class AppComponent {
                 obj.ruleDef.requiredEvents = obj.ruleDef.ruleEventTypes;
             }
         });
+        this.ref.detectChanges();
         this.getEventTypes();
     }
     getEventTypes() {
@@ -2277,6 +2289,7 @@ class AppComponent {
                 });
             }
         });
+        this.ref.detectChanges();
         this.getEventTypeSessions(0);
     }
     getEventTypeSessions(offset) {
@@ -2495,6 +2508,7 @@ class AppComponent {
                 });
             }
         });
+        this.ref.detectChanges();
     }
     getEventTypeSessionDetails(offset) {
         var counter = 0;
@@ -2561,6 +2575,7 @@ class AppComponent {
                 }
             });
         });
+        this.ref.detectChanges();
     }
     getEventTypeAssetDetails(offset) {
         var counter = 0;
@@ -2625,6 +2640,7 @@ class AppComponent {
                 }
             });
         });
+        this.ref.detectChanges();
     }
     checkEventTypeSessionDetails(offset) {
         var counter = 0;
@@ -2707,6 +2723,7 @@ class AppComponent {
                 }
             });
         });
+        this.ref.detectChanges();
     }
     checkEventTypeAssetDetails(offset) {
         var counter = 0;
@@ -2782,6 +2799,7 @@ class AppComponent {
                 }
             });
         });
+        this.ref.detectChanges();
     }
     checkFeature() {
         this.rulesAndModels.forEach((obj, index) => {
@@ -2840,6 +2858,7 @@ class AppComponent {
                 }
             });
         });
+        this.ref.detectChanges();
         this.addEventDetails();
     }
     addEventDetails() {
@@ -3029,6 +3048,7 @@ class AppComponent {
                 }
             });
         });
+        this.ref.detectChanges();
     }
     exportExcel(table) {
         __webpack_require__.e(/*! import() | xlsx */ "xlsx").then(__webpack_require__.t.bind(null, /*! xlsx */ "EUZL", 7)).then(xlsx => {
@@ -3052,6 +3072,7 @@ class AppComponent {
         this.selectedRequiredEventTypes = required;
         this.selectedPresentEventTypes = present;
         this.visibleMissingEventTypes = true;
+        this.ref.detectChanges();
     }
     onEventFieldsSelect(required, present, missing, missingTable) {
         this.selectedRequiredEventFields = required;
@@ -3059,25 +3080,31 @@ class AppComponent {
         this.selectedMissingEventFields = missing;
         this.selectedMissingEventFieldTable = missingTable;
         this.visibleMissingEventFields = true;
+        this.ref.detectChanges();
     }
     onRuleSelect(rule) {
         this.selectedRule = rule;
         this.visibleRule = true;
+        this.ref.detectChanges();
     }
     onModelSelect(model) {
         this.selectedModel = model;
         this.visibleModel = true;
+        this.ref.detectChanges();
     }
     onUsersSelect(users) {
         this.selectedUserList = users;
         this.visibleUserList = true;
+        this.ref.detectChanges();
     }
     onHostsSelect(hosts) {
         this.selectedHostList = hosts;
         this.visibleHostList = true;
+        this.ref.detectChanges();
     }
     onServerSelect() {
         this.visibleServer = true;
+        this.ref.detectChanges();
     }
 }
 AppComponent.ɵfac = function AppComponent_Factory(t) { return new (t || AppComponent)(_angular_core__WEBPACK_IMPORTED_MODULE_2__["ɵɵdirectiveInject"](_angular_forms__WEBPACK_IMPORTED_MODULE_3__["FormBuilder"]), _angular_core__WEBPACK_IMPORTED_MODULE_2__["ɵɵdirectiveInject"](_angular_common_http__WEBPACK_IMPORTED_MODULE_4__["HttpClient"]), _angular_core__WEBPACK_IMPORTED_MODULE_2__["ɵɵdirectiveInject"](_angular_core__WEBPACK_IMPORTED_MODULE_2__["ChangeDetectorRef"]), _angular_core__WEBPACK_IMPORTED_MODULE_2__["ɵɵdirectiveInject"](primeng_api__WEBPACK_IMPORTED_MODULE_1__["MessageService"])); };
