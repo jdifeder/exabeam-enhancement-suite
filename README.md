@@ -15,7 +15,9 @@ The extension will automatically run once authentication is detected.
 	- Simulate rule tuning by filtering field values from rules. 
 
 - **Data Validation (BETA):**
+
 **NOTE**: Work in progress. Any outputs by this feature should be manually verified.
+
 **NOTE**: Query throttling is enabled, however in rare cases this feature has been known to cause of DOS effect on the AA web service. It is recommended to only query 3 days or less of data to reduce the chances of this occurring. If the AA web service does crash, close the page to prevent additional queries. The web service will automatically recover in 5-10 minutes.
 	- Get sample of up to 10 events of each Event Type to determine Sources and Event Types in timelines
 	- See which Sources and Event Types are present in User Sessions, but not Asset Sequences
