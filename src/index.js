@@ -310,9 +310,9 @@ const RuleTuningView = observer(() => {
       <div className="p-grid" >
         <div className="p-col-12">
           <Card title={myHomeView.selectedRuleHeader} style={{ width: '25rem', marginBottom: '2em' }}>
-            <b>Event Count: </b> {myHomeView.selectedRuleCount} <br/>
-            <b>Session Count: </b> {myHomeView.selectedRuleSessionCount} <br/>
-            <b>Total Score: </b> {myHomeView.selectedRuleScore} <br/>
+            <b>Event Count: </b> {numberFormatter(myHomeView.selectedRuleCount)} <br/>
+            <b>Session Count: </b> {numberFormatter(myHomeView.selectedRuleSessionCount)} <br/>
+            <b>Total Score: </b> {numberFormatter(myHomeView.selectedRuleScore)} <br/>
             <Button label="Back" onClick={() => myHomeView.toggleShowEvents()} /> <br/>
           </Card>
         </div>
