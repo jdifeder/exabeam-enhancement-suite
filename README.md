@@ -32,12 +32,12 @@ The extension will automatically run once authentication is detected.
 
 1. Download the latest compiled release (exabeam-enhancement-suite.zip) [Here](https://github.com/jdifeder/exabeam-enhancement-suite/releases/latest).
 
-2. Unzip content to a folder. Recommend "exabeam-enhancement-suite".
+2. Unzip the "build" folder.
 
 3. Open "chrome://extensions/" in Google Chrome.
 
 4. Enable "Developer Mode" in the top right corner.
 
-5. Click "Load Unpacked" and select the unzipped folder "exabeam-enhancement-suite".
+5. Click "Load Unpacked" and select the unzipped "build" folder .
 
 6. Open any Exabeam Advanced Analytics in a new Chrome tab and scroll to the bottom on the page.
