@@ -12,7 +12,9 @@ import { Divider } from 'primereact/divider';
 import { TabView,TabPanel } from 'primereact/tabview';
 import { Badge } from 'primereact/badge';
 import { observer } from "mobx-react-lite";
-import ReactJson from 'react-json-view'
+import ReactJson from 'react-json-view';
+import NumberFormat from 'react-number-format';
+import axios from 'axios';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { configure } from "mobx"
@@ -33,14 +35,15 @@ configure({
   enforceActions: "never",
 })
 
-
+const versionNumber = 0.19;
 
 const tablePercentFormat = (rowData, props) => {
   let percentField = '';
   percentField = percentField.concat(props.field,'Percent')
   return (
     <>
-    <span>{rowData[props.field]} </span>
+    <NumberFormat value={rowData[props.field]} displayType={'text'} thousandSeparator={true} />
+    {/* <span>{rowData[props.field]} </span> */}
     <span style={{ color: 'green' }}>({rowData[percentField]}%) </span>
   </>)
 }
@@ -75,6 +78,30 @@ const parsingIssueBadge = (header, value) => {
     
   )
 }
+
+axios('https://api.github.com/repos/jdifeder/exabeam-enhancement-suite/releases', {
+          method: 'GET'
+        }).then(response => {
+          console.log(response.data);
+          var versionNumbers = [];
+          for (var i=0; i < response.data.length; i++) {
+            versionNumbers.push(parseFloat(response.data[i].tag_name.substring(1)))
+          }
+          console.log('versionNumbers as numbers = ', versionNumbers);
+          var highestVersion = Math.max(versionNumbers);
+          console.log('highestVersion = ',highestVersion);
+          if(highestVersion > versionNumber) {
+            for (var i=0; i < response.data.length; i++) {
+              if(parseFloat(response.data[i].tag_name.substring(1)) === highestVersion) {
+                var downloadLink = response.data[i].assets[0].browser_download_url
+              }
+            }
+            console.log('downloadLink = ', downloadLink);
+          }
+        }).catch(error => {
+          console.log('Could not reach Github to check for latest release')
+          console.log(error);
+        });
 
 const myHomeView = new Home();
 // myHomeView.getTab();

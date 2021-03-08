@@ -9,7 +9,9 @@
         "activeTab",
         "webNavigation",
         "<all_urls>",
-        "https://*/uba/*"
+        "https://*/uba/*",
+        "https://api.github.com/*",
+        "https://github.com/*"
     ],
     "content_scripts": [
         {

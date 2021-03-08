@@ -1,5 +1,4 @@
 const host = location.host;
-const queryLimit = '10000';
 
 var ifrm = document.createElement('iframe');
 // assign an id
