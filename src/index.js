@@ -35,7 +35,7 @@ configure({
   enforceActions: "never",
 })
 
-const versionNumber = 0.19;
+const versionNumber = 0.196;
 
 const tablePercentFormat = (rowData, props) => {
   let percentField = '';
@@ -46,6 +46,12 @@ const tablePercentFormat = (rowData, props) => {
     {/* <span>{rowData[props.field]} </span> */}
     <span style={{ color: 'green' }}>({rowData[percentField]}%) </span>
   </>)
+}
+
+const numberFormatter = (value) => {
+  return (
+    <NumberFormat value={value} displayType={'text'} thousandSeparator={true} />
+  )
 }
 
 const eventValueFormat = (rowData, props) => {
@@ -79,34 +85,39 @@ const parsingIssueBadge = (header, value) => {
   )
 }
 
-axios('https://api.github.com/repos/jdifeder/exabeam-enhancement-suite/releases', {
-          method: 'GET'
-        }).then(response => {
-          console.log(response.data);
-          var versionNumbers = [];
-          for (var i=0; i < response.data.length; i++) {
-            versionNumbers.push(parseFloat(response.data[i].tag_name.substring(1)))
-          }
-          console.log('versionNumbers as numbers = ', versionNumbers);
-          var highestVersion = Math.max(versionNumbers);
-          console.log('highestVersion = ',highestVersion);
-          if(highestVersion > versionNumber) {
-            for (var i=0; i < response.data.length; i++) {
-              if(parseFloat(response.data[i].tag_name.substring(1)) === highestVersion) {
-                var downloadLink = response.data[i].assets[0].browser_download_url
-              }
-            }
-            console.log('downloadLink = ', downloadLink);
-          }
-        }).catch(error => {
-          console.log('Could not reach Github to check for latest release')
-          console.log(error);
-        });
+
 
 const myHomeView = new Home();
-// myHomeView.getTab();
+
+axios('https://api.github.com/repos/jdifeder/exabeam-enhancement-suite/releases', {
+    method: 'GET'
+  }).then(response => {
+    console.log(response.data);
+    var versionNumbers = [];
+    for (var i=0; i < response.data.length; i++) {
+      versionNumbers.push(parseFloat(response.data[i].tag_name.substring(1)))
+    }
+    // console.log('versionNumbers as numbers = ', versionNumbers);
+    var highestVersion = Math.max(...versionNumbers);
+    // console.log('highestVersion = ',highestVersion);
+    if(highestVersion > versionNumber) {
+      myHomeView.needsUpdate = true;
+      for (var i=0; i < response.data.length; i++) {
+        if(parseFloat(response.data[i].tag_name.substring(1)) === highestVersion) {
+          myHomeView.downloadLink = response.data[i].assets[0].browser_download_url
+        }
+      }
+      // console.log('downloadLink = ', downloadLink);
+    }
+  }).catch(error => {
+    console.log('Could not reach Github to check for latest release')
+    console.log(error);
+  });
 
 const HomeView = observer(() => {
+
+  
+
   const dt = useRef(null);
 
   const TableHeader = (headerName, theClass, filterID) => {
@@ -129,22 +140,34 @@ const HomeView = observer(() => {
     )
   }
 
+  const downloadUpdate = () => {
+    window.open(myHomeView.downloadLink);
+  }
+
   return (
     <>
       <div className="p-grid">
+        {myHomeView.needsUpdate ?
+          <> 
+            <div className="p-col-12">
+              <h2>New Version of Exabeam Enhancement Suite Available</h2> <br/>
+              <Button label="Download" onClick={() => downloadUpdate()} />
+            </div>
+          </>
+        :false}
         {myHomeView.showStart ? 
           <Button label="Start Exabeam Enhancement Suite" onClick={() => myHomeView.getTab()} />
         :false}
         {myHomeView.showHome ?
           <>
             <div className="p-col-6">
-              <h2>New Rule Tuning Session</h2>
+              <h2>Get All Triggered Rules</h2>
               <div className="form-group">
                   <label><b>Previous days to query</b> </label>
                   <InputText value={myHomeView.queryUnitNum} onInput={(e) => myHomeView.queryUnitNum= e.target.value} />
               </div>
               <div className="form-group">
-                  <label><b>Risk Score Greater Than</b> </label>
+                  <label><b>Session Risk Score Greater Than</b> </label>
                   <InputText value={myHomeView.queryRiskScore} onInput={(e) => myHomeView.queryRiskScore= e.target.value} />
               </div>
               <Button label="Get User Sessions" onClick={() => myHomeView.getNotables('session')} /> <br></br>
@@ -163,7 +186,7 @@ const HomeView = observer(() => {
         {myHomeView.showHome && myHomeView.showpRuleTuning  ?       
         <div>
           <div className="p-col-12" >
-            <h2>Previous Tuning Sessions</h2>
+            <h2>Previous Triggered Rule Queries</h2>
             <DataTable value={myHomeView.previousRuleTuning} className="p-datatable-sm" ref={dt} paginator
               paginatorTemplate="CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
               currentPageReportTemplate="Showing {first} to {last} of {totalRecords}" rows={5} rowsPerPageOptions={[5,10,20,50]}
@@ -227,18 +250,18 @@ const RuleTuningView = observer(() => {
       <div className="p-grid">
         <div className="p-col-3">
           <Card title="Summary of Sessions" style={{marginBottom: '2em' }}>
-            <b>Total Session Scores:</b> {myHomeView.uSessionSummaryRiskScore} <br/>
-            <b>Total Session Count:</b> {myHomeView.uSessionSummarySessionCount} <br/>
-            <b>Notable Session Count:</b> {myHomeView.uSessionSummaryNotableCount} <br/>
-            <b>Notable Per Day (Average):</b> {myHomeView.uSessionSummaryNotablePerDay} <br/>
+            <b>Total Session Scores:</b> {numberFormatter(myHomeView.uSessionSummaryRiskScore)} <br/>
+            <b>Total Session Count:</b> {numberFormatter(myHomeView.uSessionSummarySessionCount)} <br/>
+            <b>Notable Session Count:</b> {numberFormatter(myHomeView.uSessionSummaryNotableCount)} <br/>
+            <b>Notable Per Day (Average):</b> {numberFormatter(myHomeView.uSessionSummaryNotablePerDay)} <br/>
             <Button label="Back" onClick={() => myHomeView.toggleShowHome()} /> <br/>
           </Card>
         </div>
         <div className="p-col-3">
           <Card title="Results of Tuning" style={{marginBottom: '2em' }}>
-            <b>Session Scores:</b> {myHomeView.uSessionSummaryTunedRiskScore} {myHomeView.uSessionSummaryTunedRiskScorePercent ? <span style={{color: 'green'}}>({myHomeView.uSessionSummaryTunedRiskScorePercent}%) </span> :false} <br/>
-            <b>Notable Session Count:</b> {myHomeView.uSessionSummaryTunedNotableCount} {myHomeView.uSessionSummaryTunedRiskScorePercent ? <span style={{color:'green'}}>({myHomeView.uSessionSummaryTunedNotableCountPercent}%) </span> :false}  <br/>
-            <b>Notable Per Day (Average):</b> {myHomeView.uSessionSummaryTunedNotablePerDay} {myHomeView.uSessionSummaryTunedRiskScorePercent ? <span style={{color:'green'}}>({myHomeView.uSessionSummaryTunedNotablePerDayPercent}%) </span> :false}  <br/>
+            <b>Session Scores:</b> {numberFormatter(myHomeView.uSessionSummaryTunedRiskScore)} {myHomeView.uSessionSummaryTunedRiskScorePercent ? <span style={{color: 'green'}}>({myHomeView.uSessionSummaryTunedRiskScorePercent}%) </span> :false} <br/>
+            <b>Notable Session Count:</b> {numberFormatter(myHomeView.uSessionSummaryTunedNotableCount)} {myHomeView.uSessionSummaryTunedRiskScorePercent ? <span style={{color:'green'}}>({myHomeView.uSessionSummaryTunedNotableCountPercent}%) </span> :false}  <br/>
+            <b>Notable Per Day (Average):</b> {numberFormatter(myHomeView.uSessionSummaryTunedNotablePerDay)} {myHomeView.uSessionSummaryTunedRiskScorePercent ? <span style={{color:'green'}}>({myHomeView.uSessionSummaryTunedNotablePerDayPercent}%) </span> :false}  <br/>
           </Card>
         </div>
         <div className="p-col-6">

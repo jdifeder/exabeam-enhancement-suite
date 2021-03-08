@@ -13,6 +13,7 @@ import { Listbox } from 'primereact/listbox';
 import Dexie from 'dexie';
 import * as moment from 'moment';
 import axios from 'axios';
+import NumberFormat from 'react-number-format';
 import { makeAutoObservable, toJS  } from "mobx";
 import { observer } from "mobx-react-lite";
 import { configure } from "mobx"
@@ -31,6 +32,8 @@ configure({
 })
 
 class Home {
+    needsUpdate = false;
+    downloadLink = '';
     showStart = true;
     showHome = false;
     showLogin = false;
@@ -173,6 +176,7 @@ class Home {
     
 
   getTab() {
+    this.needsUpdate = false;
     this.showStart = false;
     chrome.tabs.query({ active: true, currentWindow: true }, ([{ id, url }]) => {
       console.log('url = ', url);
@@ -358,6 +362,12 @@ class Home {
     )
   }
 
+  numberFormatter = (rowData, props) => {
+    return (
+      <NumberFormat value={rowData[props.field]} displayType={'text'} thousandSeparator={true} />
+    )
+  }
+
 
   async getDB() {
     this.dbName = 'exabeamEnhancementSuite'+'-'+this.host;
@@ -425,6 +435,7 @@ class Home {
     });
     console.log('this.previousRuleTuning = ', this.previousRuleTuning);
     console.log('this.previousDataValidation = ', this.previousDataValidation);
+    
     this.pRuleTuningColumns = [
       { field: 'date', header: 'Date Run' },
       { field: 'daysQueried', header: 'Days Queried' },
@@ -436,7 +447,12 @@ class Home {
       { field: 'uSessionSummaryNotablePerDay', header: 'Notable Per Day (Average)' }
     ];
     this.pRuleTuningDynamicColumns = this.pRuleTuningColumns.map((col,i) => {
-      return <Column key={col.field} field={col.field} header={col.header} sortable/>;
+      if(col.field === 'uSessionSummaryRiskScore' || col.field === 'uSessionSummarySessionCount' || col.field === 'uSessionSummaryNotableCount' || col.field === 'uSessionSummaryNotablePerDay') {
+        return <Column key={col.field} field={col.field} body={this.numberFormatter} header={col.header} sortable/>
+      } else {
+        return <Column key={col.field} field={col.field} header={col.header} sortable/>;
+      }
+      
     });
     
     
