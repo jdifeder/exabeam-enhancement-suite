@@ -92,7 +92,7 @@ const myHomeView = new Home();
 axios('https://api.github.com/repos/jdifeder/exabeam-enhancement-suite/releases', {
     method: 'GET'
   }).then(response => {
-    console.log(response.data);
+    // console.log(response.data);
     var versionNumbers = [];
     for (var i=0; i < response.data.length; i++) {
       versionNumbers.push(parseFloat(response.data[i].tag_name.substring(1)))
@@ -298,7 +298,7 @@ const RuleTuningView = observer(() => {
             <Column header="Open" body={myHomeView.openTableButtonSelectRule}></Column>
             <Column field="rule" header="Rule ID" sortable filter filterMatchMode="contains" style={{width:'15%'}}/>
             <Column field="ruleName" header="Rule Name" sortable filter filterMatchMode="contains" style={{width:'30%'}}/>
-            <Column field="count" header="Triggers" sortable style={{width:'15%'}}/>
+            <Column field="count" body={myHomeView.numberFormatter} header="Triggers" sortable style={{width:'15%'}}/>
             <Column field="sessionCount" header="Sessions" body={tablePercentFormat} sortable style={{width:'15%'}}/>
             <Column field="totalScore" header="Total Score" body={tablePercentFormat} sortable style={{width:'15%'}}/>
           </DataTable>

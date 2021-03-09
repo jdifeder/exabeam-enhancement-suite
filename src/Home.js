@@ -188,12 +188,16 @@ class Home {
     })
   }
 
-  sleep(milliseconds) {
-    const date = Date.now();
-    let currentDate = null;
-    do {
-      currentDate = Date.now();
-    } while (currentDate - date < milliseconds);
+  // sleep(milliseconds) {
+  //   const date = Date.now();
+  //   let currentDate = null;
+  //   do {
+  //     currentDate = Date.now();
+  //   } while (currentDate - date < milliseconds);
+  // }
+
+  sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   openTableButtonRuleTuning = (rowData) => {
@@ -2077,7 +2081,7 @@ class Home {
     
   // }
 
-  getRawEvents(offset, retryAttempt) {
+  async getRawEvents(offset, retryAttempt) {
     // console.log('started getRawEvents. offset: ',offset);
     this.retryAttemptRawEventsCount = retryAttempt;
     var counter = 0;
@@ -2155,10 +2159,10 @@ class Home {
       // console.log('this.doneRawEventsCount = ', this.doneRawEventsCount);
     }
     //Get raw events from DL all rules if triggered
-    tempArray.forEach((obj) => {
+    tempArray.forEach(async (obj) => {
       if(obj != undefined) {
         this.activeRawEvents++
-        chrome.tabs.sendMessage(this.tabID, {message: "rawEventSearch", rawlog_refs: obj}, (response) => {
+        chrome.tabs.sendMessage(this.tabID, {message: "rawEventSearch", rawlog_refs: obj}, async (response) => {
           if(typeof response[Object.keys(response)[0]] !== 'undefined' && typeof response[Object.keys(response)[0]][0].hits !== 'undefined') {
             this.eventTypes.forEach((obj2) => {
               obj2.sessionEventDetails.forEach((obj3) => {
@@ -2240,7 +2244,8 @@ class Home {
             counter++;
             this.doneRawEventsCount++
             this.dataValidationProgress = Math.round((((this.doneRawEventsCount/this.todoRawEventsCount) * 10) + 90));
-            this.sleep(10000);
+            // this.sleep(10000);
+            await this.sleep(10000);
             
             // console.log('got a response');
             // console.log('counter = ', counter);
