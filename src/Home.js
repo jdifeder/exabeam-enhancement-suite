@@ -39,6 +39,8 @@ class Home {
     showLogin = false;
     showTuning = false;
     showEvents = false;
+    showMitre = true;
+    showMitreRules = false;
     showValidation = false;
     onPreviousSession = false;
     showpRuleTuning = false;
@@ -52,6 +54,7 @@ class Home {
     visibleModel = false;
     visibleUserList = false;
     visibleHostList = false;
+    visibleSessionList = false;
     visibleParsingIssues = false;
     loading = false;
     bannedEvents = [];
@@ -216,8 +219,18 @@ class Home {
     return <Button icon="pi pi-trash" onClick={() => this.delPreviousDataValidation(rowData)} />;
   }
 
-  openTableButtonSelectRule = (rowData) => {
-    return <Button icon="pi pi-folder-open" onClick={() => this.onRowSelect(rowData)} />;
+  openTableButtonSelectRule = (rowData, props) => {
+    return (
+      <>
+        <Button icon="pi pi-folder-open" onClick={() => this.onRowSelect(rowData)} />
+        <span> </span>
+        <NumberFormat value={rowData[props.field]} displayType={'text'} thousandSeparator={true} />
+      </>
+    ) 
+  }
+
+  openTableButtonSelectMitre = (rowData) => {
+    return <Button icon="pi pi-folder-open" onClick={() => this.onMitreSelect(rowData)} />;
   }
 
   openTableButtonFilterEvent = (rowData) => {
@@ -226,6 +239,18 @@ class Home {
 
   openTableButtonSelectSource = (rowData) => {
     return <Button icon="pi pi-folder-open" onClick={() => this.onSourceSelect(rowData.sessionEvents,rowData.assetEvents,'AA User Session Events','AA Asset Session Events')} />;
+  }
+
+  openTableButtonSelectSessions = (rowData, props) => {
+    let percentField = '';
+    percentField = percentField.concat(props.field,'Percent')
+    return (
+      <>
+      <Button icon="pi pi-info-circle" onClick={() => this.onSessionsSelect(rowData.sessionIDs)} />
+      <span> </span>
+      <NumberFormat value={rowData[props.field]} displayType={'text'} thousandSeparator={true} />
+      <span style={{ color: 'green' }}> ({rowData[percentField]}%) </span>
+    </>)
   }
 
   openTableButtonSelectConfigIssue = (rowData, props) => {
@@ -321,11 +346,43 @@ class Home {
     )
   }
 
-  rulesAndModelsRuleId = (rowData) => {
+  rulesAndModelsRuleId = (rowData, props) => {
     return (
       <>
-      <Button icon="pi pi-folder-open" onClick={() => this.onRuleSelect(rowData.ruleDef)} />
-      <span> {rowData.ruleId}</span>
+      <Button icon="pi pi-info-circle" onClick={() => this.onRuleSelect(rowData.ruleDef)} />
+      <span> {rowData[props.field]}</span>
+      
+      </>
+    )
+  }
+
+  buttonViewSessions = (rowData, props) => {
+    return (
+      <>
+        <Button icon="pi pi-info-circle" onClick={() => this.onSessionsSelect(rowData.sessionIDs)} />
+        <span> </span>
+        <NumberFormat value={rowData[props.field]} displayType={'text'} thousandSeparator={true} />
+      </>
+    )
+  }
+
+  openSessionLink = (rowData, props) => {
+    let user = '';
+    let asset = '';
+    let link = '';
+    if(rowData[props.field].includes('asset@')) {
+      asset = rowData[props.field].split('@')[1].substr(0, rowData[props.field].split('@')[1].lastIndexOf('-'));
+      link = 'https://'.concat(this.host,'/uba/#asset/',asset,'/timeline/',rowData[props.field]);
+    } else {
+      user = rowData[props.field].substr(0, rowData[props.field].lastIndexOf('-'));
+      link = 'https://'.concat(this.host,'/uba/#user/',user,'/timeline/',rowData[props.field]) ;
+    }
+    
+    return (
+      <>
+        <Button icon="pi pi-external-link" onClick={() => window.open(link)} />
+        <span> </span>
+        <span>{rowData[props.field]}</span>
       </>
     )
   }
@@ -652,7 +709,6 @@ class Home {
   }
 
   arraySum(sessionData){
-    console.log('sessionData before modification = ', sessionData);
     //Setup array to count what users have triggered sessions and their total scores
     //console.log('about to start');
     sessionData.sessions.forEach((obj, index) => {
@@ -751,7 +807,7 @@ class Home {
       for (var i=0; i < sessionData.sessions.length; i++) {
         if(sessionData.sessions[i].rules.triggeredRules.some(rule => rule.ruleId === sessionData.ruleCounts[b].rule)) {
           sessionData.ruleCounts[b].originalSessionCount = sessionData.ruleCounts[b].originalSessionCount + 1;
-          sessionData.ruleCounts[b].sessionIDs.push(sessionData.sessions[i].id);
+          sessionData.ruleCounts[b].sessionIDs.push({id: sessionData.sessions[i].id,score: sessionData.sessions[i].riskScore});
           sessionData.ruleCounts[b].sessionCount = sessionData.ruleCounts[b].sessionCount + 1;
           if(this.uSessionSummaryTunedRiskScore) {
             sessionData.ruleCounts[b].sessionCountPercent = Math.round(((sessionData.ruleCounts[b].sessionCount / this.uSessionSummaryTunedNotablePerDay))*100);
@@ -771,11 +827,46 @@ class Home {
   setTuningData(userCounts, ruleCounts) {
     this.userData = userCounts;
     this.ruleData = ruleCounts;
-    // console.log('this.ruleData = ',this.ruleData);
+    this.ruleLabels = {};
+    console.log('this.ruleData = ',this.ruleData);
+    // console.log('this.userData = ',this.userData);
     this.ruleTuning = [];
     this.bannedEvents = [];
     this.loading = false;
     this.visibleTuningProgress = false;
+
+    for (var i=0; i < this.ruleData.length; i++) {
+      this.ruleData[i].ruleDef.ruleLabels.forEach((obj2) => {
+        if(typeof this.ruleLabels[obj2.type.concat('-',obj2.id)] === 'undefined') {
+          this.ruleLabels[obj2.type.concat('-',obj2.id)] = {};
+          this.ruleLabels[obj2.type.concat('-',obj2.id)].labelType = obj2.type;
+          this.ruleLabels[obj2.type.concat('-',obj2.id)].labelId = obj2.id;
+          this.ruleLabels[obj2.type.concat('-',obj2.id)].labelName = obj2.labelName;
+          this.ruleLabels[obj2.type.concat('-',obj2.id)].count = this.ruleData[i].count;
+          this.ruleLabels[obj2.type.concat('-',obj2.id)].totalScore = this.ruleData[i].totalScore;
+          this.ruleLabels[obj2.type.concat('-',obj2.id)].sessionCount = this.ruleData[i].sessionCount;
+          this.ruleLabels[obj2.type.concat('-',obj2.id)].rules = [];
+        } else {
+          this.ruleLabels[obj2.type.concat('-',obj2.id)].count = this.ruleLabels[obj2.type.concat('-',obj2.id)].count + this.ruleData[i].count
+          this.ruleLabels[obj2.type.concat('-',obj2.id)].totalScore = this.ruleLabels[obj2.type.concat('-',obj2.id)].totalScore + this.ruleData[i].totalScore;
+          this.ruleLabels[obj2.type.concat('-',obj2.id)].sessionCount = this.ruleLabels[obj2.type.concat('-',obj2.id)].sessionCount + this.ruleData[i].sessionCount;
+          
+        }
+        this.ruleLabels[obj2.type.concat('-',obj2.id)].rules.push(
+          {
+            rule: this.ruleData[i].rule,
+            name: this.ruleData[i].ruleName,
+            count: this.ruleData[i].count,
+            totalScore: this.ruleData[i].totalScore,
+            sessionCount: this.ruleData[i].sessionCount,
+            ruleDef: this.ruleData[i].ruleDef,
+            sessionIDs: this.ruleData[i].sessionIDs
+          }
+        );
+      })
+    }
+    this.ruleLabels = Object.values(this.ruleLabels);
+    console.log('this.ruleLabels = ', this.ruleLabels);
 
     this.columns1 = [
       { field: 'user', header: 'User' },
@@ -903,6 +994,7 @@ class Home {
   onSessionSelect() {
     this.onPreviousSession = true;
     this.thResultsUsers = this.selectedSession.sessionData;
+    // console.log('this.thResultsUsers = ',this.thResultsUsers);
     this.uSessionSummaryRiskScore = this.selectedSession.uSessionSummaryRiskScore;
     this.uSessionSummarySessionCount = this.selectedSession.uSessionSummarySessionCount;
     this.uSessionSummaryNotableCount = this.selectedSession.uSessionSummaryNotableCount;
@@ -975,6 +1067,19 @@ class Home {
     
   }
 
+  onMitreSelect (rowData) {
+    this.selectedMitre = rowData.labelId.concat('-',rowData.labelName);
+    this.selectedRules = rowData.rules;
+    this.showMitre = false;
+    this.showMitreRules = true;
+
+  }
+
+  toggleShowMitre() {
+    this.showMitre = true;
+    this.showMitreRules = false;
+  }
+
   toggleShowEvents() {
     this.showEvents = false;
     this.showTuning = true;
@@ -1033,7 +1138,7 @@ class Home {
         this.eventData = this.thResultsUsers.ruleCounts[i].events;
         this.eventData.forEach((obj) => {
           if(this.bannedEvents.some(theEvent => theEvent.event_id === obj.event_id)) {
-            this.bannedEvents.forEach((obj3, index3) => {
+            this.bannedEvents.forEach((obj3) => {
               if(obj3.event_id === obj.event_id){
                 if(obj3.rules.some(theRule => theRule === ruleName)){           
                 } else {
@@ -1108,57 +1213,9 @@ class Home {
         })
       } 
     }
-    
-    // console.log('this.eventSummaryData.length BEFORE = ',this.eventSummaryData.length);
-    // console.log('this.eventSummaryData BEFORE = ',this.eventSummaryData);
-    // console.log('Object.keys(this.eventSummaryData2).length = ',Object.keys(this.eventSummaryData2).length);
-    // console.log('this.eventSummaryData2 = ',this.eventSummaryData2);
 
     this.eventSummaryData = Object.values(this.eventSummaryData2);
     this.eventSummaryData2 = [];
-
-    // console.log('this.eventSummaryData.length AFTER = ',this.eventSummaryData.length);
-    // console.log('this.eventSummaryData AFTER = ',this.eventSummaryData);
-
-
-    // for (var i=0; i < this.eventData.length; i++) {
-    //   Object.keys(this.eventData[i]).forEach((obj2, index2) => {
-    //     for (var b=0; b < this.eventSummaryData.length; b++) {
-    //       if(this.eventSummaryData[b].fieldName === obj2 && this.eventSummaryData[b].fieldValue === this.eventData[i][obj2] && this.eventData[i]['riskScore-'+this.selectedRule]) {
-    //         if(this.bannedEvents.some(theEvent => theEvent.event_id === this.eventData[i].event_id)) {
-    //           this.bannedEvents.forEach((obj3, index3) => {
-    //             if(obj3.event_id === this.eventData[i].event_id){
-    //               if(obj3.rules.some(theRule => theRule === ruleName)){           
-    //               } else {
-    //                 this.eventSummaryData[b].count = this.eventSummaryData[b].count + 1;
-    //                 this.eventSummaryData[b].totalScore = this.eventSummaryData[b].totalScore + this.eventData[i]['riskScore-'+this.selectedRule];
-    //                 this.eventSummaryData[b].countPercent = Math.round(((this.eventSummaryData[b].count / this.selectedRuleCount))*100);
-    //                 this.eventSummaryData[b].totalScorePercent = Math.round(((this.eventSummaryData[b].totalScore / this.selectedRuleScore))*100);                   
-    //                 if(this.eventSummaryData[b].sessionIds.some(id => id === this.eventData[i].session_id)) {
-    //                 } else {
-    //                   this.eventSummaryData[b].sessionIds.push(this.eventData[i].session_id);
-    //                   this.eventSummaryData[b].sessionCount = this.eventSummaryData[b].sessionCount + 1;
-    //                   this.eventSummaryData[b].sessionCountPercent = Math.round(((this.eventSummaryData[b].sessionCount / this.selectedRuleSessionCount))*100);
-    //                 }                    
-    //               }
-    //             }
-    //           })
-    //         } else {
-    //           this.eventSummaryData[b].count = this.eventSummaryData[b].count + 1;
-    //           this.eventSummaryData[b].totalScore = this.eventSummaryData[b].totalScore + this.eventData[i]['riskScore-'+this.selectedRule];
-    //           this.eventSummaryData[b].countPercent = Math.round(((this.eventSummaryData[b].count / this.selectedRuleCount))*100);
-    //           this.eventSummaryData[b].totalScorePercent = Math.round(((this.eventSummaryData[b].totalScore / this.selectedRuleScore))*100); 
-    //           if(this.eventSummaryData[b].sessionIds.some(id => id === this.eventData[i].session_id)) {
-    //           } else {
-    //             this.eventSummaryData[b].sessionIds.push(this.eventData[i].session_id);
-    //             this.eventSummaryData[b].sessionCount = this.eventSummaryData[b].sessionCount + 1;
-    //             this.eventSummaryData[b].sessionCountPercent = Math.round(((this.eventSummaryData[b].sessionCount / this.selectedRuleSessionCount))*100);
-    //           }
-    //         }            
-    //       }          
-    //     }      
-    //   })       
-    // }
     this.eventSummaryDataDone = this.eventSummaryData;
     this.eventSummaryData = [];
     this.loading = false;
@@ -2952,7 +3009,7 @@ class Home {
                   if(typeof obj6.fields.session_id === 'undefined') {
                     var isInFeed = false;
                     for(let i=0; i<Object.keys(obj6.fields).length; i++) {
-                      if(Object.keys(obj6.fields)[i].includes('feed_')) isInFeed = true
+                      if(Object.keys(obj6.fields)[i].includes('feed_') || Object.keys(obj6.fields)[i] === 'lockout_id') isInFeed = true
                     }
                     if(!isInFeed) obj3.assetConfigIssueEvents.push({user: obj6.fields.user,fullEvent: obj6.fields});
                   } 
@@ -3060,26 +3117,6 @@ class Home {
     
   }
 
-  exportExcel(table) {
-    import("xlsx").then(xlsx => {
-        const worksheet = xlsx.utils.json_to_sheet(table);
-        const workbook = { Sheets: { 'data': worksheet }, SheetNames: ['data'] };
-        const excelBuffer = xlsx.write(workbook, { bookType: 'xlsx', type: 'array' });
-        this.saveAsExcelFile(excelBuffer, "TableExport");
-    });
-  }
-
-  saveAsExcelFile(buffer, fileName) {
-      import("file-saver").then(FileSaver => {
-          let EXCEL_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8';
-          let EXCEL_EXTENSION = '.xlsx';
-          const data = new Blob([buffer], {
-              type: EXCEL_TYPE
-          });
-          FileSaver.saveAs(data, fileName + '_export_' + new Date().getTime() + EXCEL_EXTENSION);
-      });
-  }
-
   onEventTypesSelect(required,present) {
     this.selectedRequiredEventTypes = required;
     this.selectedPresentEventTypes = present;
@@ -3110,6 +3147,12 @@ class Home {
     this.selectedModel = model;
     this.visibleModel = true;
     
+  }
+
+  onSessionsSelect(sessions) {
+    console.log('this.selectedSessionList = ',this.selectedSessionList);
+    this.selectedSessionList = sessions;
+    this.visibleSessionList = true;
   }
 
   onUsersSelect(users) {
