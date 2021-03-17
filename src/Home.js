@@ -618,7 +618,7 @@ class Home {
     //Start loop of fetch
     tempArray.forEach((obj,index) => {
       if(obj != undefined) {
-        axios('https://'+this.host+'/uba/api/user/sequence/triggeredRules?sequenceType=session&sequenceId='+obj, {
+        axios('https://'+this.host+'/uba/api/user/sequence/triggeredRules?sequenceType=session&sequenceId='+encodeURIComponent(obj), {
           method: 'GET',
           withCredentials: 'include',
         }).then(response => {
@@ -679,7 +679,7 @@ class Home {
     //Start loop of fetch
     tempArray.forEach((obj,index) => {
       if(obj != undefined) {
-        axios('https://'+this.host+'/uba/api/asset/sequence/'+obj+'/triggeredRules', {
+        axios('https://'+this.host+'/uba/api/asset/sequence/'+encodeURIComponent(obj)+'/triggeredRules', {
           method: 'GET',
           withCredentials: 'include',
         }).then(response => {
@@ -1469,7 +1469,7 @@ class Home {
     }
     tempArray.forEach((obj,index) => {
       if(obj != undefined) {
-        axios('https://'+this.host+'/uba/api/histograms/search?maxNumberOfResults=1&modelName='+obj, {
+        axios('https://'+this.host+'/uba/api/histograms/search?maxNumberOfResults=1&modelName='+encodeURIComponent(obj), {
           method: 'GET',
           withCredentials: 'include',
         }).then(response => {
@@ -1535,7 +1535,7 @@ class Home {
     }
     //Check all rules if triggered
     tempArray.forEach((obj,index) => {
-      axios('https://'+this.host+'/uba/api/rules/triggerFrequency?ruleId='+obj, {
+      axios('https://'+this.host+'/uba/api/rules/triggerFrequency?ruleId='+encodeURIComponent(obj), {
         method: 'GET',
         withCredentials: 'include',
       }).then(response => {
@@ -1859,7 +1859,7 @@ class Home {
         if(tempSessions < this.allowedEventTypeCount) {
           tempSessions++;
           this.doneEventTypeSessions.push(obj);
-          axios('https://'+this.host+'/uba/api/sequence/events/eventType?sequenceType=session&sequenceId='+obj.sessionId+'&eventType='+obj.name+'&numberOfResults='+this.allowedEventsPerSession, {
+          axios('https://'+this.host+'/uba/api/sequence/events/eventType?sequenceType=session&sequenceId='+encodeURIComponent(obj.sessionId)+'&eventType='+obj.name+'&numberOfResults='+this.allowedEventsPerSession, {
             method: 'GET',
             withCredentials: 'include',
           }).then(response => {
@@ -1912,7 +1912,7 @@ class Home {
           this.doneEventTypeSessionsDetails.push(obj);
           obj.eventIds.forEach((obj2) => {
             tempEvents++;
-            axios('https://'+this.host+'/uba/api/timeline/events/start?username=*&startSequenceType=session&startSequenceId='+obj.sessionId+'&preferredNumberOfEvents=1&anomalyOnly=false&sequenceTypes=web&sequenceTypes=session&sequenceTypes=endpoint&sequenceTypes=file&startEventId='+obj2, {
+            axios('https://'+this.host+'/uba/api/timeline/events/start?username=*&startSequenceType=session&startSequenceId='+encodeURIComponent(obj.sessionId)+'&preferredNumberOfEvents=1&anomalyOnly=false&sequenceTypes=web&sequenceTypes=session&sequenceTypes=endpoint&sequenceTypes=file&startEventId='+obj2, {
               method: 'GET',
               withCredentials: 'include',
             }).then(response => {
@@ -1973,7 +1973,7 @@ class Home {
         if(tempSessions < this.allowedEventTypeCount) {
           tempSessions++;
           this.doneEventTypeAssets.push(obj);
-          axios('https://'+this.host+'/uba/api/asset/timeline/events/start?assetId='+obj.assetId+'&startAssetSequenceId='+obj.assetSequenceId+'&preferredNumberOfEvents=5&anomalyOnly=false&eventCategories=*&sequenceTypes=asset&eventTypes='+obj.name+'&eventTypeInclude=true', {
+          axios('https://'+this.host+'/uba/api/asset/timeline/events/start?assetId='+encodeURIComponent(obj.assetId)+'&startAssetSequenceId='+encodeURIComponent(obj.assetSequenceId)+'&preferredNumberOfEvents=5&anomalyOnly=false&eventCategories=*&sequenceTypes=asset&eventTypes='+obj.name+'&eventTypeInclude=true', {
             method: 'GET',
             withCredentials: 'include',
           }).then(response => {
