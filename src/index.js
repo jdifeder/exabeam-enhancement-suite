@@ -35,7 +35,7 @@ configure({
   enforceActions: "never",
 })
 
-const versionNumber = 0.199;
+const versionNumber = 0.200;
 
 const tablePercentFormat = (rowData, props) => {
   let percentField = '';
