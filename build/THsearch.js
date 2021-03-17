@@ -15,7 +15,7 @@ ifrm.setAttribute('id', 'ifrm');
 ifrm.setAttribute('src', 'chrome-extension://kblcngmeegodfjoeglkjadepcoopjodo/index.html');
 ifrm.setAttribute('style', 'width:100%;height:100%;');
 // to place at end of document
-setTimeout(() => { document.body.appendChild(ifrm); }, 2000);
+setTimeout(() => { document.body.appendChild(ifrm); }, 5000);
 
 
 chrome.runtime.onMessage.addListener(

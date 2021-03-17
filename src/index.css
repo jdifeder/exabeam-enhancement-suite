@@ -13,8 +13,8 @@ code {
 }
 
 .p-button.p-button-icon-only {
-  width: 1.75rem;
-  padding: .1rem 0;
+  width: 1.3rem;
+  padding: 0rem 0;
 }
 
 .variable-value {
@@ -29,4 +29,12 @@ code {
 
 .p-component {
   font-size: .9rem;
+}
+
+.p-datatable.p-datatable-sm .p-datatable-tbody > tr > td {
+  padding: 0.0rem 0.1rem;
+}
+
+.p-datatable-resizable .p-datatable-thead>tr>th, .p-datatable-resizable .p-datatable-tfoot>tr>td, .p-datatable-resizable .p-datatable-tbody>tr>td {
+  overflow: visible;
 }

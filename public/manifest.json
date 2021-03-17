@@ -20,7 +20,6 @@
           "js": ["THsearch.js"]
         }
     ],
-    // "content_security_policy": "script-src-elem http://localhost:8097 http://localhost:8098 chrome-extension://*",
     "web_accessible_resources": [
         "index.html",
         "*.css",

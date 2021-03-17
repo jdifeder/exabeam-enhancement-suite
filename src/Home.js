@@ -57,6 +57,7 @@ class Home {
     visibleSessionList = false;
     visibleParsingIssues = false;
     loading = false;
+    activeIndex = 0;
     bannedEvents = [];
     eventSummaryDataDone = [];
     
@@ -77,8 +78,9 @@ class Home {
 
     allowedCount = 5;
     allowedEventTypeCount = 2;
+    allowedSessionsPerEventType = 2;
     allowedEventsPerSession = 5;
-    allowedEventTypeSessionCount = 0;
+    allowedEventTypeSessionCount = 1;
     allowedEventDetailCount = 5;
     allowedRawEventCount = 0;
     doneCount = 0;
@@ -191,14 +193,6 @@ class Home {
     })
   }
 
-  // sleep(milliseconds) {
-  //   const date = Date.now();
-  //   let currentDate = null;
-  //   do {
-  //     currentDate = Date.now();
-  //   } while (currentDate - date < milliseconds);
-  // }
-
   sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
@@ -229,8 +223,14 @@ class Home {
     ) 
   }
 
-  openTableButtonSelectMitre = (rowData) => {
-    return <Button icon="pi pi-folder-open" onClick={() => this.onMitreSelect(rowData)} />;
+  openTableButtonSelectMitre = (rowData, props) => {
+    return (
+      <>
+      <Button icon="pi pi-folder-open" onClick={() => this.onMitreSelect(rowData)} />
+      <span> {rowData[props.field]}</span>
+      
+      </>
+    )
   }
 
   openTableButtonFilterEvent = (rowData) => {
@@ -429,6 +429,10 @@ class Home {
     )
   }
 
+  setActiveIndex = (index) => {
+    this.activeIndex = index;
+  }
+
 
   async getDB() {
     this.dbName = 'exabeamEnhancementSuite'+'-'+this.host;
@@ -447,6 +451,7 @@ class Home {
     // this.previousRuleTuning = await db.table(this.ruleTuningDb).toArray();
     this.previousRuleTuning = [];
     this.tempDvTable = await db.table(this.dataValidationDb).toArray();
+    // console.log('this.tempDvTable = ',this.tempDvTable);
     this.previousDataValidation = [];
     //this.previousDataValidation = await db.table(this.dataValidationDb).toArray();
     this.afterDB();
@@ -494,8 +499,8 @@ class Home {
       obj.epochDate = obj.date;
       obj.date = moment(obj.date).format('lll');
     });
-    console.log('this.previousRuleTuning = ', this.previousRuleTuning);
-    console.log('this.previousDataValidation = ', this.previousDataValidation);
+    // console.log('this.previousRuleTuning = ', this.previousRuleTuning);
+    // console.log('this.previousDataValidation = ', this.previousDataValidation);
     
     this.pRuleTuningColumns = [
       { field: 'date', header: 'Date Run' },
@@ -539,8 +544,9 @@ class Home {
     this.showHome = true;
   }
 
-  getNotables(type) {
+  getNotables(type, riskScore) {
     this.arrayType = type;
+    this.queryRiskScore = riskScore;
     this.showLogin = false;
     this.showHome = false;
     this.loading = true;
@@ -709,19 +715,17 @@ class Home {
   }
 
   arraySum(sessionData){
+    // console.log('arraySum starting');
+    sessionData.sessionCounts = {};
     //Setup array to count what users have triggered sessions and their total scores
-    //console.log('about to start');
     sessionData.sessions.forEach((obj, index) => {
-      //console.log('in my new loop on index '+index);
       if(sessionData.userCounts.some(username => username.user === sessionData.sessions[index].user)) {
-      //  console.log( "Object found inside the array.");
       } else{
-      //  console.log("Object not found.");
-      //  console.log('pushing '+sessionData.sessions[index].user);
         sessionData.userCounts.push({'user': sessionData.sessions[index].user, 'count': 0, 'totalScore':0})
       }
        
     })
+    // console.log('1');
     //Add up the amount of times a user was seen and sum up the total risk score of those sessions
     for (var i=0; i < sessionData.sessions.length; i++) {
       for (var b=0; b < sessionData.userCounts.length; b++) {
@@ -731,6 +735,7 @@ class Home {
         }
       }     
     }
+    // console.log('2');
     //Sum up user session info
     this.uSessionSummaryNotableCount = 0;
     this.uSessionSummaryRiskScore = 0;
@@ -742,25 +747,56 @@ class Home {
     this.uSessionSummaryNotablePerDay = Math.round(this.uSessionSummaryNotableCount / this.queryUnitNum );
     this.uSessionSummarySessionCount = sessionData.sessions.length;
 
+    // console.log('3');
+    //Setup array to summarize sessions
+    // for (var i=0; i < sessionData.sessions.length; i++) {
+    //   console.log('starting index i = ',i);
+    //   console.log('sessionData.sessions[',i,'] = ',sessionData.sessions[i]);
+    //   sessionData.sessionCounts[sessionData.sessions[i].id] = {};
+    //   sessionData.sessionCounts[sessionData.sessions[i].id].id = sessionData.sessions[i].id;
+    //   sessionData.sessionCounts[sessionData.sessions[i].id].score = sessionData.sessions[i].riskScore;
+    //   sessionData.sessionCounts[sessionData.sessions[i].id].rulesUnique = Object.values(sessionData.sessions[i].rules.rules);
+    //   sessionData.sessionCounts[sessionData.sessions[i].id].rulesUniqueCount = Object.keys(sessionData.sessions[i].rules.rules).length;
+    //   for (var a=0; a < sessionData.sessionCounts[sessionData.sessions[i].id].rulesUnique.length; a++) {
+    //     console.log('starting index a = ',a);
+    //     sessionData.sessionCounts[sessionData.sessions[i].id].rulesUnique[a].events = [];
+    //     for (var b=0; b < sessionData.sessions[i].rules.triggeredRules.length; b++) {
+    //       console.log('starting index b = ',b);
+    //       if(sessionData.sessions[i].rules.triggeredRules[b].ruleId === sessionData.sessionCounts[sessionData.sessions[i].id].rulesUnique[a].ruleId) {
+    //         console.log('got a match at index b = ',b);
+    //         console.log('going to push ',sessionData.sessions[i].rules.triggeredRuleEvents[sessionData.sessions[i].rules.triggeredRules[b].eventId].fields);
+    //         console.log('into ',sessionData.sessionCounts[sessionData.sessions[i].id].rulesUnique[a].events);
+    //         sessionData.sessionCounts[sessionData.sessions[i].id].rulesUnique[a].events.push(sessionData.sessions[i].rules.triggeredRuleEvents[sessionData.sessions[i].rules.triggeredRules[b].eventId].fields);
+    //         console.log('push happened');
+    //         console.log('events now look like ',sessionData.sessionCounts[sessionData.sessions[i].id].rulesUnique[a].events);
+    //       }
+    //       console.log('finishing index b = ',b);
+    //     }
+    //   }
+    //   sessionData.sessionCounts[sessionData.sessions[i].id].rulesTotalCount = sessionData.sessions[i].rules.triggeredRules.length;
+    //   console.log('finishing index = ',i);
+    // }
+    // sessionData.sessionCounts = Object.values(sessionData.sessionCounts);
+
+      
+
+    // console.log('4');
     //Setup array to count what rules have triggered and their total scores
-    //console.log('about to start rules');
     sessionData.sessions.forEach((obj, index) => {
       sessionData.sessions[index].rules.triggeredRules.forEach((obj2, index2) => {
         sessionData.sessions[index].rules.triggeredRules[index2].ruleName = sessionData.sessions[index].rules.rules[sessionData.sessions[index].rules.triggeredRules[index2].ruleId].ruleName;
         if(sessionData.ruleCounts.some(ruleName => ruleName.rule === sessionData.sessions[index].rules.triggeredRules[index2].ruleId)) {
-       //   console.log( sessionData.sessions[index].rules.triggeredRules[index2].ruleId +" found inside the array.");
         } else{    
-          //console.log(sessionData.sessions[index].rules.triggeredRules[index2].ruleId+" not found.");
-        //  console.log('index = '+index);
-         // console.log('index2 = '+index2);
           sessionData.ruleCounts.push({'rule': sessionData.sessions[index].rules.triggeredRules[index2].ruleId, 'ruleName': sessionData.sessions[index].rules.triggeredRules[index2].ruleName, 'count': 0, 'sessionCount': 0, 'originalSessionCount': 0, 'sessionIDs': [], 'totalScore':0, 'ruleDef': sessionData.sessions[index].rules.rules[sessionData.sessions[index].rules.triggeredRules[index2].ruleId]});
         }
       }) 
     })
+    // console.log('5');
     //Add empty array of events under each triggered rule
     for (var b=0; b < sessionData.ruleCounts.length; b++) {
       sessionData.ruleCounts[b].events = [];
     }
+    // console.log('6');
     //Fill in event details for each event triggered under a rule
     sessionData.sessions.forEach((obj, index) => {
       sessionData.sessions[index].rules.triggeredRules.forEach((obj2, index2) => {
@@ -783,6 +819,7 @@ class Home {
         })
       })
     })
+    // console.log('7');
     //Add up the amount of times a rule was seen and sum up the total risk score of those rules
     for (var i=0; i < sessionData.sessions.length; i++) {
       for (var a=0; a < sessionData.sessions[i].rules.triggeredRules.length; a++) {
@@ -803,6 +840,7 @@ class Home {
       }     
     }
 
+    // console.log('8');
     for (var b=0; b < sessionData.ruleCounts.length; b++) {
       for (var i=0; i < sessionData.sessions.length; i++) {
         if(sessionData.sessions[i].rules.triggeredRules.some(rule => rule.ruleId === sessionData.ruleCounts[b].rule)) {
@@ -818,17 +856,20 @@ class Home {
         }
       }     
     }
+    //  console.log('sessionData = ',sessionData);
 
     if(!this.onPreviousSession) this.storeTuningSession();
-    this.setTuningData(sessionData.userCounts, sessionData.ruleCounts)
+    this.setTuningData(sessionData.userCounts, sessionData.ruleCounts, sessionData.sessionCounts)
 
   }
 
-  setTuningData(userCounts, ruleCounts) {
+  setTuningData(userCounts, ruleCounts, sessionCounts) {
+    console.log('setting tuning data');
     this.userData = userCounts;
     this.ruleData = ruleCounts;
+    this.sessionData = sessionCounts;
     this.ruleLabels = {};
-    console.log('this.ruleData = ',this.ruleData);
+    // console.log('this.ruleData = ',this.ruleData);
     // console.log('this.userData = ',this.userData);
     this.ruleTuning = [];
     this.bannedEvents = [];
@@ -866,7 +907,7 @@ class Home {
       })
     }
     this.ruleLabels = Object.values(this.ruleLabels);
-    console.log('this.ruleLabels = ', this.ruleLabels);
+    // console.log('this.ruleLabels = ', this.ruleLabels);
 
     this.columns1 = [
       { field: 'user', header: 'User' },
@@ -944,22 +985,22 @@ class Home {
       // console.log('this.sources= ',this.sources);
       await db.table(this.dataValidationDb).put({
         id: this.selectedSession.id,
-        date: this.selectedSession.epochDate,
+        date: this.selectedSession.date,
         daysQueried: this.selectedSession.daysQueried, 
-        rulesAndModels: this.rulesAndModels,
-        eventTypes: this.eventTypes,
+        rulesAndModels: this.rulesAndModelsDone,
+        eventTypes: this.eventTypesDone,
         summary: this.summary,
-        sources: this.sources
+        sources: this.sourcesDone
       });
     } else {
       console.log('not on previous session, will attempt to add')
       await db.table(this.dataValidationDb).add({
         date: Date.now(),
         daysQueried: this.queryUnitNum,
-        rulesAndModels: this.rulesAndModels,
-        eventTypes: this.eventTypes,
+        rulesAndModels: this.rulesAndModelsDone,
+        eventTypes: this.eventTypesDone,
         summary: this.summary,
-        sources: this.sources
+        sources: this.sourcesDone
       });
     }
     
@@ -1002,6 +1043,7 @@ class Home {
     this.showHome = false;
     this.showTuning = true;
     this.setTuningData(this.selectedSession.sessionData.userCounts, this.selectedSession.sessionData.ruleCounts);
+    // this.arraySum(this.selectedSession.sessionData);
     
   }
 
@@ -1014,6 +1056,7 @@ class Home {
   }
 
   onDvSessionSelect() {
+    // console.log('onDvSessionSelect started');
     this.onPreviousSession = true;
     this.rulesAndModels = this.selectedSession.rulesAndModels;
     this.rulesAndModelsDone = this.selectedSession.rulesAndModels;
@@ -1152,8 +1195,8 @@ class Home {
                         this.eventSummaryData2[obj2.concat('-',obj[obj2])].totalScore = obj['riskScore-'+this.selectedRule];
                         this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionCount = 0;
                         this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionIds = [];
-                        if(this.thResultsUsers.ruleCounts[i].sessionIDs.some(id => id === obj.origSessionId)) {
-                          this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionIds.push(obj.origSessionId);
+                        if(this.thResultsUsers.ruleCounts[i].sessionIDs.some(id => id.id === obj.origSessionId)) {
+                          this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionIds.push({id: obj.origSessionId});
                           this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionCount++;
                         } 
                         this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionCountPercent = Math.round(((this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionCount / this.selectedRuleSessionCount))*100);
@@ -1162,10 +1205,10 @@ class Home {
                         this.eventSummaryData2[obj2.concat('-',obj[obj2])].totalScore = this.eventSummaryData2[obj2.concat('-',obj[obj2])].totalScore + obj['riskScore-'+this.selectedRule];
                         this.eventSummaryData2[obj2.concat('-',obj[obj2])].countPercent = Math.round(((this.eventSummaryData2[obj2.concat('-',obj[obj2])].count / this.selectedRuleCount))*100);
                         this.eventSummaryData2[obj2.concat('-',obj[obj2])].totalScorePercent = Math.round(((this.eventSummaryData2[obj2.concat('-',obj[obj2])].totalScore / this.selectedRuleScore))*100);
-                        if(this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionIds.some(id => id === obj.origSessionId)) {
+                        if(this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionIds.some(id => id.id === obj.origSessionId)) {
                         } else {
-                          if(this.thResultsUsers.ruleCounts[i].sessionIDs.some(id => id === obj.origSessionId)) {
-                            this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionIds.push(obj.origSessionId);
+                          if(this.thResultsUsers.ruleCounts[i].sessionIDs.some(id => id.id === obj.origSessionId)) {
+                            this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionIds.push({id: obj.origSessionId});
                             this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionCount++;
                             this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionCountPercent = Math.round(((this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionCount / this.selectedRuleSessionCount))*100);
                           }
@@ -1187,8 +1230,8 @@ class Home {
                   this.eventSummaryData2[obj2.concat('-',obj[obj2])].totalScore = obj['riskScore-'+this.selectedRule];
                   this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionCount = 0;
                   this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionIds = [];
-                  if(this.thResultsUsers.ruleCounts[i].sessionIDs.some(id => id === obj.origSessionId)) {
-                    this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionIds.push(obj.origSessionId);
+                  if(this.thResultsUsers.ruleCounts[i].sessionIDs.some(id => id.id === obj.origSessionId)) {
+                    this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionIds.push({id: obj.origSessionId});
                     this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionCount++;
                   }
                   this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionCountPercent = Math.round(((this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionCount / this.selectedRuleSessionCount))*100);
@@ -1197,10 +1240,10 @@ class Home {
                   this.eventSummaryData2[obj2.concat('-',obj[obj2])].totalScore = this.eventSummaryData2[obj2.concat('-',obj[obj2])].totalScore + obj['riskScore-'+this.selectedRule];
                   this.eventSummaryData2[obj2.concat('-',obj[obj2])].countPercent = Math.round(((this.eventSummaryData2[obj2.concat('-',obj[obj2])].count / this.selectedRuleCount))*100);
                   this.eventSummaryData2[obj2.concat('-',obj[obj2])].totalScorePercent = Math.round(((this.eventSummaryData2[obj2.concat('-',obj[obj2])].totalScore / this.selectedRuleScore))*100);
-                  if(this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionIds.some(id => id === obj.origSessionId)) {
+                  if(this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionIds.some(id => id.id === obj.origSessionId)) {
                   } else {
-                    if(this.thResultsUsers.ruleCounts[i].sessionIDs.some(id => id === obj.origSessionId)) {
-                      this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionIds.push(obj.origSessionId);
+                    if(this.thResultsUsers.ruleCounts[i].sessionIDs.some(id => id.id === obj.origSessionId)) {
+                      this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionIds.push({id: obj.origSessionId});
                       this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionCount++;
                       this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionCountPercent = Math.round(((this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionCount / this.selectedRuleSessionCount))*100);
                     }
@@ -1742,17 +1785,20 @@ class Home {
                             
               if(counter === this.allowedEventTypeCount+1 || this.todoEventTypes-this.doneCountEventTypes === 0) {
                 offset = offset + 1;
+                if (obj.response.entities.asset != undefined){
+                  // console.log('BEFORE SORT = ', obj2.response.entities.asset);
+                  obj2.response.entities.asset.sort((a, b) => (a.assetSequenceInfo.numOfEvents > b.assetSequenceInfo.numOfEvents) ? 1 : -1);
+                  // console.log('AFTER SORT = ', obj2.response.entities.asset);
+                } 
+                if (obj.response.entities.session != undefined) obj2.response.entities.session.sort((a, b) => (a.sessionInfo.numOfEvents > b.sessionInfo.numOfEvents) ? 1 : -1);
                 if(this.doneCountEventTypes < tempKeys.length) {
+
                   //console.log('short, running again');
                   this.getEventTypeSessions(offset);
 
                 } else {
-                  if (obj.response.entities.asset != undefined){
-                    obj2.response.entities.asset.sort((a, b) => (a.assetSequenceInfo.numOfEvents > b.assetSequenceInfo.numOfEvents) ? 1 : -1);
-                  } 
-                  if (obj.response.entities.session != undefined) obj2.response.entities.session.sort((a, b) => (a.sessionInfo.numOfEvents > b.sessionInfo.numOfEvents) ? 1 : -1);
                   console.log('starting to get session details');
-                  this.getEventTypeSessionDetails(0);
+                  this.getTodoSessions();
                 } 
               }
               
@@ -1766,377 +1812,220 @@ class Home {
        
   }
 
-  getEventTypeSessionDetails(offset){
-    var counter = 0;
-    var tempKeys = []
-    var tempArray = [];
-    var tempAdded = 0;
-    this.eventTypes.forEach((obj,index) => {
-      if (obj.response.entities.session != undefined) tempKeys.push(obj);
-    })
-    this.todoEventTypeSessions = tempKeys.length;
-    for (var a=0; a < tempKeys.length && tempAdded <= this.allowedEventTypeCount; a++) {
-      //console.log('tempAdded: '+tempAdded);
-      if(this.doneEventTypeSessions.some(event => event.name === tempKeys[a].name)) {
-      } else {
-        //console.log('pushing '+tempKeys[a].name+' to doneEventTypeSessions');
-        tempArray.push(tempKeys[a]);
-        this.doneEventTypeSessions.push(tempKeys[a]);
-        tempAdded++;
-      }      
-    }
-
-    tempArray.forEach((obj,index) => {
-      this.eventTypes.forEach((obj2, index2) => {
-        if(obj.name === obj2.name) {
-          obj2.inSession = true;
-          obj2.sessionCount = obj2.response.entities.session.length;
-          obj2.totalCount = obj2.totalCount + obj2.response.entities.session.length;
-          var tempSessions = 0               
-          obj2.response.entities.session.forEach((obj3,index3) => {
-            if(index3 < this.allowedEventTypeCount) {
-              tempSessions++
-              axios('https://'+this.host+'/uba/api/sequence/events/eventType?sequenceType=session&sequenceId='+obj3.sessionInfo.sessionId+'&eventType='+obj2.name+'&numberOfResults='+this.allowedEventsPerSession, {
-                method: 'GET',
-                withCredentials: 'include',
-              }).then(response => {
-                for (var i = 0; i < Object.keys(response.data).length; i++) {
-                  obj2.todoSessionEventIDs.push({'sessionId': obj3.sessionInfo.sessionId, 'eventId': response.data[i]});
-                }
-                tempSessions--                
-                if(tempSessions === 0){
-                  this.doneCountEventTypeSessions++;
-                  counter++;
-                } 
-                this.dataValidationProgress = Math.round((((this.doneCountEventTypeSessions/this.todoEventTypeSessions) * 10) + 60));
-                //console.log('counter: for event type sessions '+counter+' for offset: '+offset);
-                 
-                if(tempSessions === 0 && (counter === this.allowedEventTypeCount+1 || this.todoEventTypeSessions-this.doneCountEventTypeSessions === 0)) {
-                  offset++;
-                  //console.log('counter: '+counter+' === '+this.allowedEventTypeCount+1+'. offset now '+offset);
-                  if(this.doneCountEventTypeSessions < tempKeys.length) {
-                    this.getEventTypeSessionDetails(offset);
-                  } else {
-                    console.log('Moving to Asset Event Details here');
-                    this.checkEventTypeSessionDetails(0);
-                  }
-                }
-              }).catch(error => {
-                console.log(error);
-                this.errors.push('Error fetching single session for event type: '+obj2.name);
-                this.errorVisible = true;
-              });
-            }
-          })
+  getTodoSessions() {
+    this.todoSessionIDs = [];
+    this.todoAssetIDs = []
+    for (var i=0; i < this.eventTypes.length; i++) {
+      if(typeof this.eventTypes[i].response.entities.session !== 'undefined') {
+        this.eventTypes[i].inSession = true;
+        this.eventTypes[i].sessionCount = this.eventTypes[i].response.entities.session.length;
+        this.eventTypes[i].totalCount = this.eventTypes[i].totalCount + this.eventTypes[i].response.entities.session.length;
+        for (var a=0; a < this.allowedSessionsPerEventType; a++) {
+          if(typeof this.eventTypes[i].response.entities.session[a] !== 'undefined') {
+            this.todoSessionIDs.push({
+              name: this.eventTypes[i].name,
+              sessionId: this.eventTypes[i].response.entities.session[a].sessionInfo.sessionId,
+              eventIds: [],
+              eventDetails: []
+            });
+          }
         }
-      })
-    })
-     
+      }
+      if(typeof this.eventTypes[i].response.entities.asset !== 'undefined') {
+        for (var a=0; a < this.allowedSessionsPerEventType; a++) {
+          if(typeof this.eventTypes[i].response.entities.asset[a] !== 'undefined') {
+            this.todoAssetIDs.push({
+              name: this.eventTypes[i].name,
+              assetId: this.eventTypes[i].response.entities.asset[a].assetSequenceInfo.assetId,
+              assetSequenceId: this.eventTypes[i].response.entities.asset[a].assetSequenceInfo.assetSequenceId,
+              eventDetails: []
+            });
+          }
+        }
+      }
+    }
+    // console.log('this.todoSessionIDs = ',this.todoSessionIDs);
+    // console.log('this.todoAssetIDs = ',this.todoAssetIDs);
+    this.todoEventTypeSessions = this.todoSessionIDs.length;
+    this.todoEventTypeAssets  =this.todoAssetIDs.length;
+    this.getEventTypeSessionDetails();
   }
 
-  checkEventTypeSessionDetails(offset) {
-    var counter = 0;
-    var tempKeys = []
-    var tempArray = [];
-    var tempAdded = 0;
-    this.eventTypes.forEach((obj,index) => {
-      if (obj.response.entities.session != undefined && obj.todoSessionEventIDs.length !== 0) tempKeys.push(obj);
-    })
-    this.todoEventTypeSessionsDetails = tempKeys.length;
-    for (var a=0; a < tempKeys.length && tempAdded <= this.allowedEventTypeSessionCount; a++) {
-      // console.log('tempAdded: ',tempAdded);
-      if(this.doneEventTypeSessionsDetails.some(event => event.name === tempKeys[a].name)) {
+  getEventTypeSessionDetails(){
+    var tempSessions = 0
+    this.todoSessionIDs.forEach((obj) => {
+      if(this.doneEventTypeSessions.some(event => event.name === obj.name && event.sessionId === obj.sessionId)) {
       } else {
-        // console.log('pushing ',tempKeys[a].name,' to doneEventTypeSessionsDetails');
-        tempArray.push(tempKeys[a]);
-        this.doneEventTypeSessionsDetails.push(tempKeys[a]);
-        tempAdded++;
-      }      
-    }
-
-    tempArray.forEach((obj,index) => {
-      this.eventTypes.forEach((obj2, index2) => {
-        if(obj.name === obj2.name) {     
-            var tempSessions = 0;       
-            obj2.todoSessionEventIDs.forEach((obj4,index4) => {
-              if(obj2.doneSessionEventIDs.some(event => event.sessionId === obj4.sessionId && event.eventId === obj4.eventId)){
+        if(tempSessions < this.allowedEventTypeCount) {
+          tempSessions++;
+          this.doneEventTypeSessions.push(obj);
+          axios('https://'+this.host+'/uba/api/sequence/events/eventType?sequenceType=session&sequenceId='+obj.sessionId+'&eventType='+obj.name+'&numberOfResults='+this.allowedEventsPerSession, {
+            method: 'GET',
+            withCredentials: 'include',
+          }).then(response => {
+            for (var i = 0; i < Object.keys(response.data).length; i++) {
+              obj.eventIds.push(response.data[i]);
+            }
+            tempSessions--;
+            this.doneCountEventTypeSessions++                
+            this.dataValidationProgress = Math.round((((this.doneCountEventTypeSessions/this.todoEventTypeSessions) * 10) + 60));
+              
+            if(tempSessions === 0) {
+              if(this.doneCountEventTypeSessions < this.todoEventTypeSessions) {
+                this.getEventTypeSessionDetails();
               } else {
-                obj2.doneSessionEventIDs.push({'sessionId': obj4.sessionId, 'eventId': obj4.eventId});
-                tempSessions++
-                axios('https://'+this.host+'/uba/api/timeline/events/start?username=*&startSequenceType=session&startSequenceId='+obj4.sessionId+'&preferredNumberOfEvents=1&anomalyOnly=false&sequenceTypes=web&sequenceTypes=session&sequenceTypes=endpoint&sequenceTypes=file&startEventId='+obj4.eventId, {
-                  method: 'GET',
-                  withCredentials: 'include',
-                }).then(response => {
-                  obj2.sessionEventDetails.push(response.data);
-                    obj2.sessionEventDetails.forEach((obj5) => {
-                      if(typeof obj5.firstEvent !== 'undefined') {
-                        if(typeof obj5.aggregatedEvents[0].es[0].fields.rawlog_refs !== 'undefined') {
-                          obj5.firstEvent.fields.rawEventSearch = '{"rawlog_refs":'+JSON.stringify(obj5.aggregatedEvents[0].es[0].fields.rawlog_refs)+'}';
-                        }
-                        Object.keys(obj5.firstEvent.fields).forEach((obj6) => {
-                          if(obj2.sessionEventFields.some(theField => theField.toLowerCase().replace(/ /g,"") === obj6.toLowerCase().replace(/ /g,""))) {
-                          } else{
-                            obj2.sessionEventFields.push(obj6.toLowerCase().replace(/ /g,""));
-                          }
-                        })
-                      }                              
-                    })
-                    tempSessions--               
-                    if(tempSessions === 0){
-                      this.doneCountEventTypeSessionsDetails++;
-                      counter++;
-                    }
-                    this.dataValidationProgress = Math.round((((this.doneCountEventTypeSessionsDetails/this.todoEventTypeSessionsDetails) * 10) + 80));
-                    //console.log('counter: for event type sessions '+counter+' for offset: '+offset);
-                     
-                    if(tempSessions === 0 && (counter === this.allowedEventTypeSessionCount+1 || this.todoEventTypeSessionsDetails-this.doneCountEventTypeSessionsDetails === 0)) {
-                      offset++;
-                      if(this.doneCountEventTypeSessionsDetails < tempKeys.length) {
-                        this.checkEventTypeSessionDetails(offset);
-                      } else {
-                        this.getEventTypeAssetDetails(0);
-                      }
-                    }
-                }).catch(error => {
-                  console.log(error);
-                  this.errors.push('Error fetching single session event for event type: '+obj2.name);
-                  this.errorVisible = true;
-                });
+                // console.log('Moving to Asset Event Details here');
+                // console.log('finished this.todoSessionIDs = ',this.todoSessionIDs);
+                this.getTodoSessionEvents();
               }
-            })                                                                                      
+            }
+          }).catch(error => {
+            console.log(error);
+            this.errors.push('Error fetching single session for event type: '+obj.name);
+            this.errorVisible = true;
+          });
         }
-      })
+      }
     })
-    
+     
   }
 
-  getEventTypeAssetDetails(offset){
-    var counter = 0;
-    var tempKeys = []
-    var tempArray = [];
-    var tempAdded = 0;
-    this.eventTypes.forEach((obj,index) => {
-      if (obj.response.entities.asset != undefined) tempKeys.push(obj);
-    })
-    this.todoEventTypeAssets = tempKeys.length;
-    for (var a=0; a < tempKeys.length && tempAdded <= this.allowedEventTypeCount; a++) {
-      if(this.doneEventTypeAssets.some(event => event.name === tempKeys[a].name)) {
-      } else {
-        tempArray.push(tempKeys[a]);
-        this.doneEventTypeAssets.push(tempKeys[a]);
-        tempAdded++;
-      }      
+  getTodoSessionEvents() {
+    var tempSessionLength = 0;
+    for (var i=0; i < this.todoSessionIDs.length; i++) {
+      this.todoSessionIDs[i].eventIds.forEach((obj) => {
+        tempSessionLength++;
+      })
     }
+    this.todoEventTypeSessionsDetails = tempSessionLength;
+    this.checkEventTypeSessionDetails();
+  }
 
-    tempArray.forEach((obj,index) => {
-      this.eventTypes.forEach((obj2, index2) => {
-        if(obj.name === obj2.name) {
-            obj2.inAsset = true;
-            obj2.assetCount = obj2.response.entities.asset.length;
-            obj2.totalCount = obj2.totalCount + obj2.response.entities.asset.length; 
-            var tempSessions = 0                
-            obj2.response.entities.asset.forEach((obj3,index3) => {
-            if(index3 < this.allowedEventTypeCount) {
-              tempSessions++
-              axios('https://'+this.host+'/uba/api/asset/timeline/events/start?assetId='+obj3.assetSequenceInfo.assetId+'&startAssetSequenceId='+obj3.assetSequenceInfo.assetSequenceId+'&preferredNumberOfEvents=5&anomalyOnly=false&eventCategories=*&sequenceTypes=asset&eventTypes='+obj2.name+'&eventTypeInclude=true', {
-                method: 'GET',
-                withCredentials: 'include',
-              }).then(response => {
-                obj2.assetEventDetails.push(response.data);
-                  obj2.assetEventDetails.forEach((obj5) => {
-                    if(typeof obj5.firstEvent !== 'undefined') {
-                      obj5.aggregatedEvents[0].es.forEach((obj6) => {
-                        if(typeof obj6.fields.rawlog_refs !== 'undefined') {
-                          obj6.fields.rawEventSearch = '{"rawlog_refs":'+JSON.stringify(obj6.fields.rawlog_refs)+'}';
-                        }
-                        Object.keys(obj6.fields).forEach((obj7) => {
-                          if(obj2.assetEventFields.some(theField => theField.toLowerCase().replace(/ /g,"") === obj7.toLowerCase().replace(/ /g,""))) {
-                          } else{
-                            obj2.assetEventFields.push(obj7.toLowerCase().replace(/ /g,""));
-                            }
-                        })
-                      })
-                      
-                    }                              
-                  })
-                    tempSessions--                
-                    if(tempSessions === 0){
-                      this.doneCountEventTypeAssets++;
-                      counter++;
-                    } 
-                    this.dataValidationProgress = Math.round((((this.doneCountEventTypeAssets/this.todoEventTypeAssets) * 10) + 80));
-                    //console.log('counter: for event type sessions '+counter+' for offset: '+offset);
-
-                    if(tempSessions === 0 && (counter === this.allowedEventTypeCount+1 || this.todoEventTypeAssets-this.doneCountEventTypeAssets === 0)) {
-                      offset++;
-                      //console.log('counter: '+counter+' === '+this.allowedEventTypeCount+1+'. offset now '+offset);
-                      if(this.doneCountEventTypeAssets < tempKeys.length) {
-                        this.getEventTypeAssetDetails(offset);
-                      } else {
-                        console.log('Moved on to getRawEvents here');
-                        this.getRawEvents(0,0);
-                      }
-                    }
-              }).catch(error => {
-                console.log(error);
-                this.errors.push('Error fetching single session event for event type: '+obj2.name);
-                this.errorVisible = true;
-              });
-            }
+  checkEventTypeSessionDetails() {
+    var tempSessions = 0;
+    var tempEvents = 0;
+    this.todoSessionIDs.forEach((obj) => {
+      if(this.doneEventTypeSessionsDetails.some(event => event.name === obj.name && event.sessionId === obj.sessionId)) {
+      } else {
+        if(tempSessions < this.allowedEventTypeSessionCount) {
+          tempSessions++;
+          this.doneEventTypeSessionsDetails.push(obj);
+          obj.eventIds.forEach((obj2) => {
+            tempEvents++;
+            axios('https://'+this.host+'/uba/api/timeline/events/start?username=*&startSequenceType=session&startSequenceId='+obj.sessionId+'&preferredNumberOfEvents=1&anomalyOnly=false&sequenceTypes=web&sequenceTypes=session&sequenceTypes=endpoint&sequenceTypes=file&startEventId='+obj2, {
+              method: 'GET',
+              withCredentials: 'include',
+            }).then(response => {
+              obj.eventDetails.push(response.data);
+              tempEvents--
+              this.doneCountEventTypeSessionsDetails++;               
+              this.dataValidationProgress = Math.round((((this.doneCountEventTypeSessionsDetails/this.todoEventTypeSessionsDetails) * 10) + 80));
+                
+              if(tempEvents === 0) {
+                tempSessions--;
+                if(this.doneCountEventTypeSessionsDetails < this.todoEventTypeSessionsDetails) {
+                  this.checkEventTypeSessionDetails();
+                } else {
+                  this.pushSessionEventDetails();
+                  
+                }
+              }
+            }).catch(error => {
+              console.log(error);
+              this.errors.push('Error fetching single session event for event type: '+obj.name);
+              this.errorVisible = true;
+            });
           })
         }
-      })
+      }
+    })
+  }
+
+  pushSessionEventDetails() {
+    for (var i=0; i < this.eventTypes.length; i++) {
+      for (var a=0; a < this.todoSessionIDs.length; a++) {
+        if(this.eventTypes[i].name === this.todoSessionIDs[a].name) {
+          this.todoSessionIDs[a].eventDetails.forEach((obj) => {
+            if(typeof obj.firstEvent !== 'undefined') {
+              if(typeof obj.aggregatedEvents[0].es[0].fields.rawlog_refs !== 'undefined') {
+                obj.firstEvent.fields.rawEventSearch = '{"rawlog_refs":'+JSON.stringify(obj.aggregatedEvents[0].es[0].fields.rawlog_refs)+'}';
+              }
+              Object.keys(obj.firstEvent.fields).forEach((obj6) => {
+                if(this.eventTypes[i].sessionEventFields.some(theField => theField.toLowerCase().replace(/ /g,"") === obj6.toLowerCase().replace(/ /g,""))) {
+                } else{
+                  this.eventTypes[i].sessionEventFields.push(obj6.toLowerCase().replace(/ /g,""));
+                }
+              })
+            }
+            this.eventTypes[i].sessionEventDetails.push(obj);                              
+          })
+        }
+      }
+    }
+    this.getEventTypeAssetDetails();
+  }
+
+  getEventTypeAssetDetails(){
+    var tempSessions = 0
+    this.todoAssetIDs.forEach((obj) => {
+      if(this.doneEventTypeAssets.some(event => event.name === obj.name && event.assetId === obj.assetId && event.assetSequenceId === obj.assetSequenceId)) {
+      } else {
+        if(tempSessions < this.allowedEventTypeCount) {
+          tempSessions++;
+          this.doneEventTypeAssets.push(obj);
+          axios('https://'+this.host+'/uba/api/asset/timeline/events/start?assetId='+obj.assetId+'&startAssetSequenceId='+obj.assetSequenceId+'&preferredNumberOfEvents=5&anomalyOnly=false&eventCategories=*&sequenceTypes=asset&eventTypes='+obj.name+'&eventTypeInclude=true', {
+            method: 'GET',
+            withCredentials: 'include',
+          }).then(response => {
+            obj.eventDetails.push(response.data); 
+            tempSessions--
+            this.doneCountEventTypeAssets++                
+            this.dataValidationProgress = Math.round((((this.doneCountEventTypeAssets/this.todoEventTypeAssets) * 10) + 80));
+
+            if(tempSessions === 0) {
+              if(this.doneCountEventTypeAssets < this.todoEventTypeAssets) {
+                this.getEventTypeAssetDetails();
+              } else {
+                console.log('Moved on to pushAssetEventDetails here');
+                this.pushAssetEventDetails();
+              }
+            }
+          }).catch(error => {
+            console.log(error);
+            this.errors.push('Error fetching single session event for event type: '+obj.name);
+            this.errorVisible = true;
+          });
+        }
+      }
     })
      
   }
 
-  // getEventTypeAssetDetails(offset){
-  //   var counter = 0;
-  //   var tempKeys = []
-  //   var tempArray = [];
-  //   var tempAdded = 0;
-  //   this.eventTypes.forEach((obj,index) => {
-  //     if (obj.response.entities.asset != undefined) tempKeys.push(obj);
-  //   })
-  //   this.todoEventTypeAssets = tempKeys.length;
-  //   for (var a=0; a < tempKeys.length && tempAdded <= this.allowedEventTypeCount; a++) {
-  //     if(this.doneEventTypeAssets.some(event => event.name === tempKeys[a].name)) {
-  //     } else {
-  //       tempArray.push(tempKeys[a]);
-  //       this.doneEventTypeAssets.push(tempKeys[a]);
-  //       tempAdded++;
-  //     }      
-  //   }
-
-  //   tempArray.forEach((obj,index) => {
-  //     this.eventTypes.forEach((obj2, index2) => {
-  //       if(obj.name === obj2.name) {
-  //           obj2.inAsset = true;
-  //           obj2.assetCount = obj2.response.entities.asset.length;
-  //           obj2.totalCount = obj2.totalCount + obj2.response.entities.asset.length; 
-  //           var tempSessions = 0                
-  //           obj2.response.entities.asset.forEach((obj3,index3) => {
-  //           if(index3 < this.allowedEventTypeCount) {
-  //             tempSessions++
-  //             axios('https://'+this.host+'/uba/api/sequence/events/eventType?sequenceType=asset&sequenceId='+obj3.assetSequenceInfo.assetSequenceId+'&eventType='+obj2.name+'&numberOfResults='+this.allowedEventsPerSession, {
-  //               method: 'GET',
-  //               withCredentials: 'include',
-  //             }).then(response => {
-  //               for (var i = 0; i < Object.keys(response.data).length; i++) {
-  //                 obj2.todoAssetEventIDs.push({'sessionId': obj3.assetSequenceInfo.assetSequenceId, 'assetId': obj3.assetSequenceInfo.assetId, 'eventId': response.data[i]});
-  //               }
-  //               tempSessions--                
-  //               if(tempSessions === 0){
-  //                 this.doneCountEventTypeAssets++;
-  //                 counter++;
-  //               } 
-  //               this.dataValidationProgress = Math.round((((this.doneCountEventTypeAssets/this.todoEventTypeAssets) * 10) + 70));
-  //               //console.log('counter: for event type sessions '+counter+' for offset: '+offset);
-                 
-  //               if(tempSessions === 0 && (counter === this.allowedEventTypeCount+1 || this.todoEventTypeAssets-this.doneCountEventTypeAssets === 0)) {
-  //                 offset++;
-  //                 //console.log('counter: '+counter+' === '+this.allowedEventTypeCount+1+'. offset now '+offset);
-  //                 if(this.doneCountEventTypeAssets < tempKeys.length) {
-  //                   this.getEventTypeAssetDetails(offset);
-  //                 } else {
-  //                   console.log('Moving to Session Event Details here');
-  //                   this.checkEventTypeSessionDetails(0);
-  //                 }
-  //               }
-  //             }).catch(error => {
-  //               console.log(error);
-  //               this.errors.push('Error fetching single session for event type: '+obj2.name);
-  //               this.errorVisible = true;
-  //             });
-  //           }
-  //         })
-  //       }
-  //     })
-  //   })
-     
-  // }
-
-
-  
-
-  // checkEventTypeAssetDetails(offset) {
-  //   var counter = 0;
-  //   var tempKeys = []
-  //   var tempArray = [];
-  //   var tempAdded = 0;
-  //   this.eventTypes.forEach((obj,index) => {
-  //     if (obj.response.entities.asset != undefined && obj.todoAssetEventIDs.length !== 0) tempKeys.push(obj);
-  //   })
-  //   this.todoEventTypeAssetsDetails = tempKeys.length;
-  //   for (var a=0; a < tempKeys.length && tempAdded <= this.allowedEventTypeSessionCount; a++) {
-  //     //console.log('tempAdded: '+tempAdded);
-  //     if(this.doneEventTypeAssetsDetails.some(event => event.name === tempKeys[a].name)) {
-  //     } else {
-  //       //console.log('pushing '+tempKeys[a].name+' to doneEventTypeSessionsDetails');
-  //       tempArray.push(tempKeys[a]);
-  //       this.doneEventTypeAssetsDetails.push(tempKeys[a]);
-  //       tempAdded++;
-  //     }      
-  //   }
-
-  //   tempArray.forEach((obj,index) => {
-  //     this.eventTypes.forEach((obj2, index2) => {
-  //       if(obj.name === obj2.name) {
-  //         var tempSessions = 0;       
-  //         obj2.todoAssetEventIDs.forEach((obj4,index4) => {
-  //           if(obj2.doneAssetEventIDs.some(event => event.sessionId === obj4.sessionId && event.eventId === obj4.eventId)){
-  //           } else {
-  //             obj2.doneAssetEventIDs.push({'sessionId': obj4.sessionId, 'eventId': obj4.eventId});
-  //             tempSessions++
-  //             axios('https://'+this.host+'/uba/api/asset/timeline/events/start?assetId='+obj4.assetId+'&startAssetSequenceId='+obj4.sessionId+'&preferredNumberOfEvents=1&anomalyOnly=false&eventCategories=*&sequenceTypes=asset&eventTypes='+obj2.name+'&eventTypeInclude=true&startEventId='+obj4.eventId, {
-  //               method: 'GET',
-  //               withCredentials: 'include',
-  //             }).then(response => {
-  //               obj2.assetEventDetails.push(response.data);
-  //                 obj2.assetEventDetails.forEach((obj5) => {
-  //                   if(typeof obj5.firstEvent !== 'undefined') {
-  //                     if(typeof obj5.aggregatedEvents[0].es[0].fields.rawlog_refs !== 'undefined') {
-  //                       obj5.firstEvent.fields.rawEventSearch = '{"rawlog_refs":'+JSON.stringify(obj5.aggregatedEvents[0].es[0].fields.rawlog_refs)+'}';
-  //                     }
-  //                     Object.keys(obj5.firstEvent.fields).forEach((obj6) => {
-  //                       if(obj2.assetEventFields.some(theField => theField.toLowerCase().replace(/ /g,"") === obj6.toLowerCase().replace(/ /g,""))) {
-  //                       } else{
-  //                         obj2.assetEventFields.push(obj6.toLowerCase().replace(/ /g,""));
-  //                         }
-  //                       })
-  //                     }                              
-  //                   })
-  //                   tempSessions--                
-  //                   if(tempSessions === 0){
-  //                     this.doneCountEventTypeAssetsDetails++;
-  //                     counter++;
-  //                   } 
-  //                   this.dataValidationProgress = Math.round((((this.doneCountEventTypeAssetsDetails/this.todoEventTypeAssetsDetails) * 10) + 80));
-  //                   //console.log('counter: for event type sessions '+counter+' for offset: '+offset);
-                     
-  //                   if(tempSessions === 0 && (counter === this.allowedEventTypeSessionCount+1 || this.todoEventTypeAssetsDetails-this.doneCountEventTypeAssetsDetails === 0)) {
-  //                     offset++;
-  //                     //console.log('counter: '+counter+' === '+this.allowedEventTypeSessionCount+1+'. offset now '+offset);
-  //                     if(this.doneCountEventTypeAssetsDetails < tempKeys.length) {
-  //                       this.checkEventTypeAssetDetails(offset);
-  //                     } else {
-  //                       console.log('Moved on to getRawEvents here');
-  //                       this.getRawEvents(0,0);
-  //                     }
-  //                   }
-  //             }).catch(error => {
-  //               console.log(error);
-  //               this.errors.push('Error fetching single session event for event type: '+obj2.name);
-  //               this.errorVisible = true;
-  //             });
-  //           }                                                                     
-  //         })                        
-
-  //       }
-  //     })
-  //   })
-    
-  // }
+  pushAssetEventDetails() {
+    for (var i=0; i < this.eventTypes.length; i++) {
+      for (var a=0; a < this.todoAssetIDs.length; a++) {
+        if(this.eventTypes[i].name === this.todoAssetIDs[a].name) {
+          this.todoAssetIDs[a].eventDetails.forEach((obj) => {
+            if(typeof obj.firstEvent !== 'undefined') {
+              obj.aggregatedEvents[0].es.forEach((obj6) => {
+                if(typeof obj6.fields.rawlog_refs !== 'undefined') {
+                  obj6.fields.rawEventSearch = '{"rawlog_refs":'+JSON.stringify(obj6.fields.rawlog_refs)+'}';
+                }
+                Object.keys(obj6.fields).forEach((obj7) => {
+                  if(this.eventTypes[i].assetEventFields.some(theField => theField.toLowerCase().replace(/ /g,"") === obj7.toLowerCase().replace(/ /g,""))) {
+                  } else{
+                    this.eventTypes[i].assetEventFields.push(obj7.toLowerCase().replace(/ /g,""));
+                    }
+                })
+              })
+            }
+            this.eventTypes[i].assetEventDetails.push(obj);
+          })
+        }
+      }
+    }
+    this.getRawEvents(0,0);
+  }
 
   async getRawEvents(offset, retryAttempt) {
     // console.log('started getRawEvents. offset: ',offset);
@@ -2228,8 +2117,8 @@ class Home {
                 }        
               });
               obj2.assetEventDetails.forEach((obj3) => {
-                if(typeof obj2.aggregatedEvents !== 'undefined') {
-                  obj2.aggregatedEvents[0].es.forEach((obj6) => {
+                if(typeof obj3.aggregatedEvents !== 'undefined' && typeof obj3.aggregatedEvents[0] !== 'undefined') {
+                  obj3.aggregatedEvents[0].es.forEach((obj6) => {
                     if(obj6.fields.rawEventSearch === obj) {
                       obj6.fields.dlEvent = response[Object.keys(response)[0]][0].hits.hits[0]._source;
                     }
@@ -2820,80 +2709,82 @@ class Home {
         }
       })
       obj.assetEventDetails.forEach((obj2) => {
-        obj2.aggregatedEvents[0].es.forEach((obj6) => {
-          if(this.sources.some(source => source.source === obj6.fields.source && source.name === obj6.fields.event_type)) {} else {
-            this.sources.push({
-              'source': obj6.fields.source,
-              'name': obj6.fields.event_type,
-              'inSession': false, 
-              'inAsset': false,
-              'configIssues': 0,
-              'sessionConfigIssueEvents': [],
-              'assetConfigIssueEvents': [],
-              'missingAssetEvents': false,
-              'missingSessionEvents': false,
-              'sessionEventsWithSrcOrDestHost': 0,
-              'sessionEventsWithEntityId': 0,
-              'assetEventsWithUser': 0,
-              'assetEventsWithSessionId': 0,
-              'parsingIssues': 0,
-              'aaSessionEventParsingIssues': {
-                'src_ip': [],
-                'src_host': [],
-                'dest_ip': [],
-                'dest_host': [],
-                'host': [],
-                'user': []
-              },
-              'aaAssetEventParsingIssues': {
-                'src_ip': [],
-                'src_host': [],
-                'dest_ip': [],
-                'dest_host': [],
-                'host': [],
-                'user': []
-              },
-              'aaSessionEventFieldCounts':{
-                'src_ip': 0,
-                'src_host': 0,
-                'dest_ip': 0,
-                'dest_host': 0,
-                'host': 0,
-                'user': 0
-              },
-              'dlSessionEventFieldCounts':{
-                'src_ip': 0,
-                'src_host': 0,
-                'dest_ip': 0,
-                'dest_host': 0,
-                'host': 0,
-                'user': 0
-              },
-              'aaAssetEventFieldCounts':{
-                'src_ip': 0,
-                'src_host': 0,
-                'dest_ip': 0,
-                'dest_host': 0,
-                'host': 0,
-                'user': 0
-              },
-              'dlAssetEventFieldCounts':{
-                'src_ip': 0,
-                'src_host': 0,
-                'dest_ip': 0,
-                'dest_host': 0,
-                'host': 0,
-                'user': 0
-              },
-              'sessionRawEventCount': 0,
-              'assetRawEventCount': 0,
-              'sessionEvents': [],
-              'assetEvents': [],
-              'models': obj.models,
-              'rules': obj.rules
-            });
-          }
-        })
+        if(typeof obj2.aggregatedEvents[0] !== 'undefined') {
+          obj2.aggregatedEvents[0].es.forEach((obj6) => {
+            if(this.sources.some(source => source.source === obj6.fields.source && source.name === obj6.fields.event_type)) {} else {
+              this.sources.push({
+                'source': obj6.fields.source,
+                'name': obj6.fields.event_type,
+                'inSession': false, 
+                'inAsset': false,
+                'configIssues': 0,
+                'sessionConfigIssueEvents': [],
+                'assetConfigIssueEvents': [],
+                'missingAssetEvents': false,
+                'missingSessionEvents': false,
+                'sessionEventsWithSrcOrDestHost': 0,
+                'sessionEventsWithEntityId': 0,
+                'assetEventsWithUser': 0,
+                'assetEventsWithSessionId': 0,
+                'parsingIssues': 0,
+                'aaSessionEventParsingIssues': {
+                  'src_ip': [],
+                  'src_host': [],
+                  'dest_ip': [],
+                  'dest_host': [],
+                  'host': [],
+                  'user': []
+                },
+                'aaAssetEventParsingIssues': {
+                  'src_ip': [],
+                  'src_host': [],
+                  'dest_ip': [],
+                  'dest_host': [],
+                  'host': [],
+                  'user': []
+                },
+                'aaSessionEventFieldCounts':{
+                  'src_ip': 0,
+                  'src_host': 0,
+                  'dest_ip': 0,
+                  'dest_host': 0,
+                  'host': 0,
+                  'user': 0
+                },
+                'dlSessionEventFieldCounts':{
+                  'src_ip': 0,
+                  'src_host': 0,
+                  'dest_ip': 0,
+                  'dest_host': 0,
+                  'host': 0,
+                  'user': 0
+                },
+                'aaAssetEventFieldCounts':{
+                  'src_ip': 0,
+                  'src_host': 0,
+                  'dest_ip': 0,
+                  'dest_host': 0,
+                  'host': 0,
+                  'user': 0
+                },
+                'dlAssetEventFieldCounts':{
+                  'src_ip': 0,
+                  'src_host': 0,
+                  'dest_ip': 0,
+                  'dest_host': 0,
+                  'host': 0,
+                  'user': 0
+                },
+                'sessionRawEventCount': 0,
+                'assetRawEventCount': 0,
+                'sessionEvents': [],
+                'assetEvents': [],
+                'models': obj.models,
+                'rules': obj.rules
+              });
+            }
+          })
+        }
         
       })
       obj.sessionEventDetails.forEach((obj2) => {
@@ -2978,13 +2869,12 @@ class Home {
                 obj3.dlSessionEventFieldCounts.host++;
               } 
               if(typeof obj2.firstEvent.fields.dlEvent.user !== 'undefined') {
-                if(obj2.firstEvent.fields.user !== 'system' && !obj2.firstEvent.fields.user.endsWith('$') && !obj2.firstEvent.fields.user.includes('*') && 
-                !obj2.firstEvent.fields.user.includes('anonymous') && obj2.firstEvent.fields.event_type !== 'failed-logon' && 
-                obj2.firstEvent.fields.event_type !== 'computer-logon') {
+                if(obj2.firstEvent.fields.event_type !== 'failed-logon' && obj2.firstEvent.fields.event_type !== 'computer-logon' && obj2.firstEvent.fields.dlEvent.user !== 'system' && 
+                !obj2.firstEvent.fields.dlEvent.user.endsWith('$') && !obj2.firstEvent.fields.dlEvent.user.includes('*') && !obj2.firstEvent.fields.dlEvent.user.includes('anonymous')) {
                   if(typeof obj2.firstEvent.fields.user === 'undefined') {
                     obj3.parsingIssues++;
                     obj3.aaSessionEventParsingIssues.user.push({parsedInDL:obj2.firstEvent.fields.dlEvent.user,parsedInAA:'',fullEvent:obj2.firstEvent.fields});
-                  } 
+                  }
                   obj3.dlSessionEventFieldCounts.user++;
                 } 
               }
@@ -2997,112 +2887,113 @@ class Home {
         })
       })
       obj.assetEventDetails.forEach((obj2) => {
-        obj2.aggregatedEvents[0].es.forEach((obj6) => {
-          this.sources.forEach((obj3) => {
-            if(obj3.source === obj6.fields.source && obj3.name === obj6.fields.event_type) {
-              obj3.assetEvents.push(obj6.fields);
-              obj3.inAsset = true;
-              if(typeof obj6.fields.user !== 'undefined' ) {
-                if(obj6.fields.user !== 'system' && !obj6.fields.user.endsWith('$') && !obj6.fields.user.includes('*') && 
-                !obj6.fields.user.includes('anonymous') && obj6.fields.event_type !== 'failed-logon' && obj6.fields.event_type !== 'computer-logon') {
-                  obj3.assetEventsWithUser++
-                  if(typeof obj6.fields.session_id === 'undefined') {
-                    var isInFeed = false;
-                    for(let i=0; i<Object.keys(obj6.fields).length; i++) {
-                      if(Object.keys(obj6.fields)[i].includes('feed_') || Object.keys(obj6.fields)[i] === 'lockout_id') isInFeed = true
-                    }
-                    if(!isInFeed) obj3.assetConfigIssueEvents.push({user: obj6.fields.user,fullEvent: obj6.fields});
-                  } 
-                }
-              } 
-              if(typeof obj6.fields.session_id !== 'undefined') obj3.assetEventsWithSessionId++;
-              if(obj3.assetEventsWithUser > 0 && obj3.assetEventsWithSessionId === 0) {
-                obj3.missingSessionEvents = true;
-                // obj3.configIssues++;
-                obj3.configIssues = obj3.sessionConfigIssueEvents.length + obj3.assetConfigIssueEvents.length;
-              }
-              //AA parsed field check
-              if(typeof obj6.fields.src_ip !== 'undefined') {
-                if(!((obj6.fields.src_ip.match(/\:/g) || []).length >= 1)) {
-                  obj3.aaAssetEventFieldCounts.src_ip++; 
-                }
-              }     
-              if(typeof obj6.fields.src_host !== 'undefined') obj3.aaAssetEventFieldCounts.src_host++;
-              if(typeof obj6.fields.dest_ip !== 'undefined') {
-                if(!((obj6.fields.dest_ip.match(/\:/g) || []).length >= 1)) {
-                  obj3.aaAssetEventFieldCounts.dest_ip++; 
-                }
-              } 
-              if(typeof obj6.fields.dest_host !== 'undefined') obj3.aaAssetEventFieldCounts.dest_host++;
-              if(typeof obj6.fields.host !== 'undefined') obj3.aaAssetEventFieldCounts.host++;
-              if(typeof obj6.fields.user !== 'undefined') {
-                if(obj6.fields.user !== 'system' && !obj6.fields.user.endsWith('$') && !obj6.fields.user.includes('*') && 
-                !obj6.fields.user.includes('anonymous') && obj6.fields.event_type !== 'failed-logon' && 
-                obj6.fields.event_type !== 'computer-logon') obj3.aaAssetEventFieldCounts.user++;
-              }
-              //DL parsed field check
-              if(typeof obj6.fields.dlEvent !== 'undefined') {
-                obj3.assetRawEventCount++
-                if(typeof obj6.fields.dlEvent.src_ip !== 'undefined') {
-                  if(!((obj6.fields.dlEvent.src_ip.match(/\:/g) || []).length >= 1)) {
-                    if(typeof obj6.fields.src_ip === 'undefined') {
-                      obj3.parsingIssues++;
-                      obj3.aaAssetEventParsingIssues.src_ip.push({parsedInDL:obj6.fields.dlEvent.src_ip,parsedInAA:'',fullEvent:obj6.fields});
+        if(typeof obj2.aggregatedEvents[0] !== 'undefined') {
+          obj2.aggregatedEvents[0].es.forEach((obj6) => {
+            this.sources.forEach((obj3) => {
+              if(obj3.source === obj6.fields.source && obj3.name === obj6.fields.event_type) {
+                obj3.assetEvents.push(obj6.fields);
+                obj3.inAsset = true;
+                if(typeof obj6.fields.user !== 'undefined' ) {
+                  if(obj6.fields.user !== 'system' && !obj6.fields.user.endsWith('$') && !obj6.fields.user.includes('*') && 
+                  !obj6.fields.user.includes('anonymous') && obj6.fields.event_type !== 'failed-logon' && obj6.fields.event_type !== 'computer-logon' && obj6.fields.event_type !== 'network-connection-successful' && obj6.fields.event_type !== 'network-connection-failed') {
+                    obj3.assetEventsWithUser++
+                    if(typeof obj6.fields.session_id === 'undefined') {
+                      var isInFeed = false;
+                      for(let i=0; i<Object.keys(obj6.fields).length; i++) {
+                        if(Object.keys(obj6.fields)[i].includes('feed_') || Object.keys(obj6.fields)[i] === 'lockout_id') isInFeed = true
+                      }
+                      if(!isInFeed) obj3.assetConfigIssueEvents.push({user: obj6.fields.user,fullEvent: obj6.fields});
                     } 
-                    obj3.dlAssetEventFieldCounts.src_ip++; 
                   }
+                } 
+                if(typeof obj6.fields.session_id !== 'undefined') obj3.assetEventsWithSessionId++;
+                if(obj3.assetEventsWithUser > 0 && obj3.assetEventsWithSessionId === 0) {
+                  obj3.missingSessionEvents = true;
+                  // obj3.configIssues++;
+                  obj3.configIssues = obj3.sessionConfigIssueEvents.length + obj3.assetConfigIssueEvents.length;
                 }
-                if(typeof obj6.fields.dlEvent.dest_ip !== 'undefined') obj3.dlAssetEventFieldCounts.dest_ip++;
-                if(typeof obj6.fields.dlEvent.dest_ip !== 'undefined') {
-                  if(!((obj6.fields.dlEvent.dest_ip.match(/\:/g) || []).length >= 1)) {
-                    if(typeof obj6.fields.dest_ip === 'undefined') {
-                      obj3.parsingIssues++;
-                      obj3.aaAssetEventParsingIssues.dest_ip.push({parsedInDL:obj6.fields.dlEvent.dest_ip,parsedInAA:'',fullEvent:obj6.fields});
-                    } 
-                    obj3.dlAssetEventFieldCounts.dest_ip++; 
+                //AA parsed field check
+                if(typeof obj6.fields.src_ip !== 'undefined') {
+                  if(!((obj6.fields.src_ip.match(/\:/g) || []).length >= 1)) {
+                    obj3.aaAssetEventFieldCounts.src_ip++; 
                   }
-                }
-                if(typeof obj6.fields.dlEvent.src_host !== 'undefined') {
-                  if(typeof obj6.fields.src_host === 'undefined') {
-                    obj3.parsingIssues++;
-                    obj3.aaAssetEventParsingIssues.src_host.push({parsedInDL:obj6.fields.dlEvent.src_host,parsedInAA:'',fullEvent:obj6.fields});
-                  } 
-                  obj3.dlAssetEventFieldCounts.src_host++;
+                }     
+                if(typeof obj6.fields.src_host !== 'undefined') obj3.aaAssetEventFieldCounts.src_host++;
+                if(typeof obj6.fields.dest_ip !== 'undefined') {
+                  if(!((obj6.fields.dest_ip.match(/\:/g) || []).length >= 1)) {
+                    obj3.aaAssetEventFieldCounts.dest_ip++; 
+                  }
                 } 
-                if(typeof obj6.fields.dlEvent.dest_host !== 'undefined') {
-                  if(typeof obj6.fields.dest_host === 'undefined') {
-                    obj3.parsingIssues++;
-                    obj3.aaAssetEventParsingIssues.dest_host.push({parsedInDL:obj6.fields.dlEvent.dest_host,parsedInAA:'',fullEvent:obj6.fields});
-                  } 
-                  obj3.dlAssetEventFieldCounts.dest_host++;
-                } 
-                if(typeof obj6.fields.dlEvent.host !== 'undefined') {
-                  if(typeof obj6.fields.host === 'undefined') {
-                    obj3.parsingIssues++;
-                    obj3.aaAssetEventParsingIssues.host.push({parsedInDL:obj6.fields.dlEvent.host,parsedInAA:'',fullEvent:obj6.fields});
-                  } 
-                  obj3.dlAssetEventFieldCounts.host++;
-                } 
-                if(typeof obj6.fields.dlEvent.user !== 'undefined') {
+                if(typeof obj6.fields.dest_host !== 'undefined') obj3.aaAssetEventFieldCounts.dest_host++;
+                if(typeof obj6.fields.host !== 'undefined') obj3.aaAssetEventFieldCounts.host++;
+                if(typeof obj6.fields.user !== 'undefined') {
                   if(obj6.fields.user !== 'system' && !obj6.fields.user.endsWith('$') && !obj6.fields.user.includes('*') && 
                   !obj6.fields.user.includes('anonymous') && obj6.fields.event_type !== 'failed-logon' && 
-                  obj6.fields.event_type !== 'computer-logon') {
-                    if(typeof obj6.fields.user === 'undefined') {
-                      obj3.parsingIssues++;
-                      obj3.aaAssetEventParsingIssues.user.push({parsedInDL:obj6.fields.dlEvent.user,parsedInAA:'',fullEvent:obj6.fields});
-                    } 
-                    obj3.dlAssetEventFieldCounts.user++;
-                  } 
+                  obj6.fields.event_type !== 'computer-logon') obj3.aaAssetEventFieldCounts.user++;
                 }
+                //DL parsed field check
+                if(typeof obj6.fields.dlEvent !== 'undefined') {
+                  obj3.assetRawEventCount++
+                  if(typeof obj6.fields.dlEvent.src_ip !== 'undefined') {
+                    if(!((obj6.fields.dlEvent.src_ip.match(/\:/g) || []).length >= 1)) {
+                      if(typeof obj6.fields.src_ip === 'undefined') {
+                        obj3.parsingIssues++;
+                        obj3.aaAssetEventParsingIssues.src_ip.push({parsedInDL:obj6.fields.dlEvent.src_ip,parsedInAA:'',fullEvent:obj6.fields});
+                      } 
+                      obj3.dlAssetEventFieldCounts.src_ip++; 
+                    }
+                  }
+                  if(typeof obj6.fields.dlEvent.dest_ip !== 'undefined') obj3.dlAssetEventFieldCounts.dest_ip++;
+                  if(typeof obj6.fields.dlEvent.dest_ip !== 'undefined') {
+                    if(!((obj6.fields.dlEvent.dest_ip.match(/\:/g) || []).length >= 1)) {
+                      if(typeof obj6.fields.dest_ip === 'undefined') {
+                        obj3.parsingIssues++;
+                        obj3.aaAssetEventParsingIssues.dest_ip.push({parsedInDL:obj6.fields.dlEvent.dest_ip,parsedInAA:'',fullEvent:obj6.fields});
+                      } 
+                      obj3.dlAssetEventFieldCounts.dest_ip++; 
+                    }
+                  }
+                  if(typeof obj6.fields.dlEvent.src_host !== 'undefined') {
+                    if(typeof obj6.fields.src_host === 'undefined') {
+                      obj3.parsingIssues++;
+                      obj3.aaAssetEventParsingIssues.src_host.push({parsedInDL:obj6.fields.dlEvent.src_host,parsedInAA:'',fullEvent:obj6.fields});
+                    } 
+                    obj3.dlAssetEventFieldCounts.src_host++;
+                  } 
+                  if(typeof obj6.fields.dlEvent.dest_host !== 'undefined') {
+                    if(typeof obj6.fields.dest_host === 'undefined') {
+                      obj3.parsingIssues++;
+                      obj3.aaAssetEventParsingIssues.dest_host.push({parsedInDL:obj6.fields.dlEvent.dest_host,parsedInAA:'',fullEvent:obj6.fields});
+                    } 
+                    obj3.dlAssetEventFieldCounts.dest_host++;
+                  } 
+                  if(typeof obj6.fields.dlEvent.host !== 'undefined') {
+                    if(typeof obj6.fields.host === 'undefined') {
+                      obj3.parsingIssues++;
+                      obj3.aaAssetEventParsingIssues.host.push({parsedInDL:obj6.fields.dlEvent.host,parsedInAA:'',fullEvent:obj6.fields});
+                    } 
+                    obj3.dlAssetEventFieldCounts.host++;
+                  } 
+                  if(typeof obj6.fields.dlEvent.user !== 'undefined') {
+                    if(obj6.fields.event_type !== 'failed-logon' && obj6.fields.event_type !== 'computer-logon' && obj6.fields.dlEvent.user !== 'system' && !obj6.fields.dlEvent.user.endsWith('$') && 
+                    !obj6.fields.dlEvent.user.includes('*') && !obj6.fields.dlEvent.user.includes('anonymous')) {
+                      if(typeof obj6.fields.user === 'undefined') {
+                        obj3.parsingIssues++;
+                        obj3.aaAssetEventParsingIssues.user.push({parsedInDL:obj6.fields.dlEvent.user,parsedInAA:'',fullEvent:obj6.fields});
+                      }
+                      obj3.dlAssetEventFieldCounts.user++;
+                    } 
+                  }
+                }
+                //Only check DL parsed fields if all raw events were successfully fetched from DL
+                if(obj3.assetRawEventCount > 0 && obj3.assetRawEventCount !== obj3.assetEvents.length) {
+                  obj3.parsingIssues = 0;
+                }           
               }
-              //Only check DL parsed fields if all raw events were successfully fetched from DL
-              if(obj3.assetRawEventCount > 0 && obj3.assetRawEventCount !== obj3.assetEvents.length) {
-                obj3.parsingIssues = 0;
-              }           
-            }
-          })
+            })
 
-        })
+          })
+        }
         
       })     
     })

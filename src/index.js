@@ -146,12 +146,14 @@ const HomeView = observer(() => {
 
   return (
     <>
-      <div className="p-grid">
+      {/* <div className="p-grid"> */}
         {myHomeView.needsUpdate ?
           <> 
-            <div className="p-col-12">
-              <h2>New Version of Exabeam Enhancement Suite Available</h2> <br/>
-              <Button label="Download" onClick={() => downloadUpdate()} />
+            <div className="p-grid">
+              <div className="p-col-12">
+                <h2>New Version of Exabeam Enhancement Suite Available</h2> <br/>
+                <Button label="Download" onClick={() => downloadUpdate()} />
+              </div>
             </div>
           </>
         :false}
@@ -160,8 +162,64 @@ const HomeView = observer(() => {
         :false}
         {myHomeView.showHome ?
           <>
-            <div className="p-col-2"></div>
-            <div className="p-col-4">
+            <div className="p-grid">
+              <div className="p-col-3">
+                <Card title="Get Notable Triggered Rules" subTitle="User Sessions">
+                  <p>Get all User Sessions for a period of days</p>
+                  <p>Browse Triggered Rules</p>
+                  <p>Minimum Session Risk Score = 90</p>
+                  <label><b>Previous days to query</b> </label> <InputText value={myHomeView.queryUnitNum} onInput={(e) => myHomeView.queryUnitNum= e.target.value} />
+                  <br/>
+                  <Button label="Start" onClick={() => myHomeView.getNotables('session', '90')} /> <br/>
+                </Card>
+              </div>
+              <div className="p-col-3">
+                <Card title="Get Notable Triggered Rules" subTitle="Asset Sessions">
+                  <p>Get all Asset Sessions for a period of days</p>
+                  <p>Browse Triggered Rules</p>
+                  <p>Minimum Session Risk Score = 90</p>
+                  <label><b>Previous days to query</b> </label> <InputText value={myHomeView.queryUnitNum} onInput={(e) => myHomeView.queryUnitNum= e.target.value} />
+                  <br/>
+                  <Button label="Start" onClick={() => myHomeView.getNotables('asset', '90')} /> <br/>
+                </Card>
+              </div>
+              <div className="p-col-3">
+                <Card title="Get All Triggered Rules" subTitle="User Sessions">
+                  <p>Get all User Sessions for a period of days</p>
+                  <p>Browse Triggered Rules</p>
+                  <p>Minimum Session Risk Score = 1</p>
+                  <label><b>Previous days to query</b> </label> <InputText value={myHomeView.queryUnitNum} onInput={(e) => myHomeView.queryUnitNum= e.target.value} />
+                  <br/>
+                  <Button label="Start" onClick={() => myHomeView.getNotables('session', '1')} /> <br/>
+                </Card>
+              </div>
+              <div className="p-col-3">
+                <Card title="Get All Triggered Rules" subTitle="Asset Sessions">
+                  <p>Get all Asset Sessions for a period of days</p>
+                  <p>Browse Triggered Rules</p>
+                  <p>Minimum Session Risk Score = 1</p>
+                  <label><b>Previous days to query</b> </label> <InputText value={myHomeView.queryUnitNum} onInput={(e) => myHomeView.queryUnitNum= e.target.value} />
+                  <br/>
+                  <Button label="Start" onClick={() => myHomeView.getNotables('asset', '1')} /> <br/>
+                </Card>
+              </div>
+            </div>
+
+            <div className="p-grid">
+              <div className="p-col-3">
+                <Card title="Data Validation" subTitle="BETA">
+                  <p>Get 2 samples of every Event Type for a period of days</p>
+                  <p>Get Raw Event from DL if DL is present</p>
+                  <p>Browse event samples to discover issues</p>
+                  <label><b>Previous days to query</b> </label> <InputText value={myHomeView.queryUnitNum} onInput={(e) => myHomeView.queryUnitNum= e.target.value} />
+                  <br/>
+                  <Button label="Start" onClick={() => myHomeView.startValidation()} /> <br/>
+                </Card>
+              </div>
+            </div>
+            
+            {/* <div className="p-col-4">
+            
               <h2>Get All Triggered Rules</h2>
               <div className="form-group">
                   <label><b>Previous days to query</b> </label>
@@ -182,7 +240,7 @@ const HomeView = observer(() => {
                 </div>
                 <Button label="Start Data Validation" onClick={() => myHomeView.startValidation()} /> <br></br>
             </div>
-            <div className="p-col-2"></div>
+            <div className="p-col-2"></div> */}
           </>
         :false}
         {myHomeView.showHome && myHomeView.showpRuleTuning  ?       
@@ -192,7 +250,7 @@ const HomeView = observer(() => {
             <DataTable value={myHomeView.previousRuleTuning} className="p-datatable-sm p-datatable-striped" ref={dt} paginator
               paginatorTemplate="CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
               currentPageReportTemplate="Showing {first} to {last} of {totalRecords}" rows={5} rowsPerPageOptions={[5,10,20,50]}
-              header={TableHeader('Previous Tuning Sessions',myHomeView,'previousRuleTuningGlobalFilter')}
+              header={TableHeader('',myHomeView,'previousRuleTuningGlobalFilter')}
               globalFilter={myHomeView.previousRuleTuningGlobalFilter} loading={myHomeView.loading} resizableColumns sortField="id" sortOrder={-1}>
               <Column header="Open" body={myHomeView.openTableButtonRuleTuning}></Column>
               {myHomeView.pRuleTuningDynamicColumns}
@@ -207,7 +265,7 @@ const HomeView = observer(() => {
             <DataTable value={myHomeView.previousDataValidation} className="p-datatable-sm p-datatable-striped" ref={dt} paginator
               paginatorTemplate="CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
               currentPageReportTemplate="Showing {first} to {last} of {totalRecords}" rows={5} rowsPerPageOptions={[5,10,20,50]}
-              header={TableHeader('Previous Data Validation Sessions',myHomeView,'previousDataValidationGlobalFilter')}
+              header={TableHeader('',myHomeView,'previousDataValidationGlobalFilter')}
               globalFilter={myHomeView.previousDataValidationGlobalFilter} loading={myHomeView.loading} resizableColumns sortField="id" sortOrder={-1}>
               <Column header="Open" body={myHomeView.openTableButtonDataValidation}></Column>
               {myHomeView.pDataValidationDynamicColumns}
@@ -215,7 +273,7 @@ const HomeView = observer(() => {
             </DataTable>
           </div>
         :false}
-      </div>
+      {/* </div> */}
 
     </>
   );
@@ -283,7 +341,7 @@ const RuleTuningView = observer(() => {
       <>
         <div className="p-grid">
           <div className="p-col-12">
-            <TabView>
+            <TabView activeIndex={myHomeView.activeIndex} onTabChange={(e) => myHomeView.setActiveIndex(e.index)}>
               <TabPanel header="By Rule Name">
                 <div className="p-grid">
                   {/* <div className="p-col-4">
@@ -301,14 +359,14 @@ const RuleTuningView = observer(() => {
                     <DataTable value={myHomeView.ruleData} className="p-datatable-sm p-datatable-striped" ref={dt} paginator
                       paginatorTemplate="CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
                       currentPageReportTemplate="Showing {first} to {last} of {totalRecords}" rows={20} rowsPerPageOptions={[5,10,20,50]}
-                      header={TableHeader('',myHomeView,'')}
+                      header={TableHeader('',myHomeView,'')} stateStorage="session" stateKey="rulesTableState"
                       globalFilter={myHomeView.ruleDataGlobalFilter} loading={myHomeView.loading} resizableColumns columnResizeMode="fit" sortField="totalScore" sortOrder={-1}>
                       {/* <Column header="Open" body={myHomeView.openTableButtonSelectRule}></Column> */}
-                      <Column field="rule" header="Rule ID" body={myHomeView.rulesAndModelsRuleId} sortable filter filterMatchMode="contains" style={{width:'15%'}}/>
-                      <Column field="ruleName" header="Rule Name" sortable filter filterMatchMode="contains" style={{width:'30%'}}/>
-                      <Column field="count" body={myHomeView.openTableButtonSelectRule} header="Events" sortable style={{width:'15%'}}/>
-                      <Column field="sessionCount" header="Sessions" body={myHomeView.openTableButtonSelectSessions} sortable style={{width:'15%'}}/>
-                      <Column field="totalScore" header="Total Score" body={tablePercentFormat} sortable style={{width:'15%'}}/>
+                      <Column field="rule" header="Rule ID" body={myHomeView.rulesAndModelsRuleId} sortable filter filterMatchMode="contains" style={{width:'25%'}}/>
+                      <Column field="ruleName" header="Rule Name" sortable filter filterMatchMode="contains" style={{width:'45%'}}/>
+                      <Column field="count" body={myHomeView.openTableButtonSelectRule} header="Events" sortable style={{width:'10%'}}/>
+                      <Column field="sessionCount" header="Sessions" body={myHomeView.openTableButtonSelectSessions} sortable style={{width:'10%'}}/>
+                      <Column field="totalScore" header="Total Score" body={tablePercentFormat} sortable style={{width:'10%'}}/>
                     </DataTable>
                   </div>
                 </div>
@@ -332,10 +390,9 @@ const RuleTuningView = observer(() => {
                     <div className="p-col-12">
                       <h2>MITRE Techniques</h2>
                       <DataTable value={myHomeView.ruleLabels} className="p-datatable-sm p-datatable-striped" ref={dt}
-                        header={TableHeader('',myHomeView,'')}
+                        header={TableHeader('',myHomeView,'')} stateStorage="session" stateKey="mitreTableState"
                         globalFilter={myHomeView.ruleDataGlobalFilter} loading={myHomeView.loading} resizableColumns columnResizeMode="fit" sortField="totalScore" sortOrder={-1}>
-                        <Column header="Open" body={myHomeView.openTableButtonSelectMitre}></Column>
-                        <Column field="labelId" header="Technique ID" sortable filter filterMatchMode="contains" style={{width:'15%'}}/>
+                        <Column field="labelId" header="Technique ID" body={myHomeView.openTableButtonSelectMitre} sortable filter filterMatchMode="contains" style={{width:'25%'}}/>
                         <Column field="labelName" header="Technique Name" sortable filter filterMatchMode="contains" style={{width:'30%'}}/>
                         <Column field="count" header="Events" body={myHomeView.numberFormatter} sortable style={{width:'15%'}}/>
                         <Column field="sessionCount" header="Sessions" body={myHomeView.numberFormatter} sortable style={{width:'15%'}}/>
@@ -350,14 +407,14 @@ const RuleTuningView = observer(() => {
                       <DataTable value={myHomeView.selectedRules} className="p-datatable-sm p-datatable-striped" ref={dt} paginator
                         paginatorTemplate="CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
                         currentPageReportTemplate="Showing {first} to {last} of {totalRecords}" rows={20} rowsPerPageOptions={[5,10,20,50]}
-                        header={TableHeader('',myHomeView,'')}
+                        header={TableHeader('',myHomeView,'')} stateStorage="session" stateKey="rulesTableState"
                         globalFilter={myHomeView.ruleDataGlobalFilter} loading={myHomeView.loading} resizableColumns columnResizeMode="fit" sortField="totalScore" sortOrder={-1}>
                         {/* <Column header="Open" body={myHomeView.openTableButtonSelectRule}></Column> */}
                         <Column field="rule" header="Rule ID" body={myHomeView.rulesAndModelsRuleId} sortable filter filterMatchMode="contains" style={{width:'15%'}}/>
-                        <Column field="name" header="Rule Name" sortable filter filterMatchMode="contains" style={{width:'30%'}}/>
-                        <Column field="count" header="Events" body={myHomeView.openTableButtonSelectRule} sortable style={{width:'15%'}}/>
-                        <Column field="sessionCount" header="Sessions" body={myHomeView.buttonViewSessions} sortable style={{width:'15%'}}/>
-                        <Column field="totalScore" header="Total Score" body={myHomeView.numberFormatter} sortable style={{width:'15%'}}/>
+                        <Column field="name" header="Rule Name" sortable filter filterMatchMode="contains" style={{width:'45%'}}/>
+                        <Column field="count" header="Events" body={myHomeView.openTableButtonSelectRule} sortable style={{width:'10%'}}/>
+                        <Column field="sessionCount" header="Sessions" body={myHomeView.buttonViewSessions} sortable style={{width:'10%'}}/>
+                        <Column field="totalScore" header="Total Score" body={myHomeView.numberFormatter} sortable style={{width:'10%'}}/>
                       </DataTable>
                     </div>
                   :false}
@@ -389,7 +446,7 @@ const RuleTuningView = observer(() => {
             currentPageReportTemplate="Showing {first} to {last} of {totalRecords}" rows={20} rowsPerPageOptions={[5,10,20,50]}
             header={TableHeader('Events',myHomeView,'eventSummaryGlobalFilter')}
             globalFilter={myHomeView.eventSummaryGlobalFilter} loading={myHomeView.loading} resizableColumns columnResizeMode="fit" sortField="totalScore" sortOrder={-1}>
-            <Column header="Open" body={myHomeView.openTableButtonFilterEvent}></Column>
+            <Column header="Filter" body={myHomeView.openTableButtonFilterEvent}></Column>
             <Column field="fieldName" header="Field Name" sortable filter filterMatchMode="contains" style={{width:'15%'}}/>
             <Column field="fieldValue" header="Value" body={eventValueFormat} sortable filter filterMatchMode="contains" style={{width:'30%'}}/>
             <Column field="count" header="Event Count" body={tablePercentFormat} sortable style={{width:'15%'}}/>
@@ -468,11 +525,11 @@ const DataValidationTables = observer(() => {
                 <Column field="name" header="Event Type" sortable filter filterMatchMode="contains"/>
                 <Column field="inSession" header="User Sessions" body={myHomeView.booleanFormat} sortable filter filterMatchMode="contains"/>
                 <Column field="inAsset" header="Asset Sessions" body={myHomeView.booleanFormat} sortable filter filterMatchMode="contains"/>
-                <Column field="source" header="Users" body={myHomeView.eventTypeUsers} sortable/>
-                <Column field="source" header="Hosts" body={myHomeView.eventTypeHosts} sortable/>
-                <Column field="source" header="Field Count" body={myHomeView.eventTypeFields} sortable/>
-                <Column field="source" header="Models Populating" body={myHomeView.eventTypeModelsPopulating} sortable/>
-                <Column field="source" header="Rules Can Trigger" body={myHomeView.eventTypeRulesCouldTrigger} sortable/>
+                <Column field="uniqueUsers" header="Users" body={myHomeView.eventTypeUsers} sortable/>
+                <Column field="uniqueHosts" header="Hosts" body={myHomeView.eventTypeHosts} sortable/>
+                <Column field="fieldsPopulatingPercent" header="Field Count" body={myHomeView.eventTypeFields} sortable/>
+                <Column field="modelsPopulatingPercent" header="Models Populating" body={myHomeView.eventTypeModelsPopulating} sortable/>
+                <Column field="rulesCouldTriggerPercent" header="Rules Can Trigger" body={myHomeView.eventTypeRulesCouldTrigger} sortable/>
               </DataTable>
             </div>
           </div>
@@ -628,21 +685,27 @@ const Dialogs = observer(() => {
     
     <Dialog header="User List" visible={myHomeView.visibleUserList} style={{ width: '80vw' }} onHide={() => myHomeView.onHide('visibleUserList')}>
       <DataTable value={myHomeView.selectedUserList} className="p-datatable-sm p-datatable-striped" ref={dt}
-        resizableColumns columnResizeMode="fit" sortField="name" sortOrder={1}>
+        resizableColumns columnResizeMode="fit" sortField="name" sortOrder={1} paginator
+        paginatorTemplate="CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
+        currentPageReportTemplate="Showing {first} to {last} of {totalRecords}" rows={12} rowsPerPageOptions={[12,20,50]}>
         <Column field="name" header="User" sortable filter filterMatchMode="contains"/>
       </DataTable>
     </Dialog>
     
     <Dialog header="Host List" visible={myHomeView.visibleHostList} style={{ width: '80vw' }} onHide={() => myHomeView.onHide('visibleHostList')}>
       <DataTable value={myHomeView.selectedHostList} className="p-datatable-sm p-datatable-striped" ref={dt}
-        resizableColumns columnResizeMode="fit" sortField="name" sortOrder={1}>
+        resizableColumns columnResizeMode="fit" sortField="name" sortOrder={1} paginator
+        paginatorTemplate="CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
+        currentPageReportTemplate="Showing {first} to {last} of {totalRecords}" rows={12} rowsPerPageOptions={[12,20,50]}>
         <Column field="name" header="Host" sortable filter filterMatchMode="contains"/>
       </DataTable>
     </Dialog>
 
     <Dialog header="Session List" visible={myHomeView.visibleSessionList} style={{ width: '80vw' }} onHide={() => myHomeView.onHide('visibleSessionList')}>
       <DataTable value={myHomeView.selectedSessionList} className="p-datatable-sm p-datatable-striped" ref={dt}
-        resizableColumns columnResizeMode="fit" sortField="score" sortOrder={-1}>
+        resizableColumns columnResizeMode="fit" sortField="score" sortOrder={-1} paginator
+        paginatorTemplate="CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
+        currentPageReportTemplate="Showing {first} to {last} of {totalRecords}" rows={12} rowsPerPageOptions={[12,20,50]}> 
         <Column field="id" header="Session ID" body={myHomeView.openSessionLink} sortable filter filterMatchMode="contains"/>
         <Column field="score" header="Risk Score" sortable filter filterMatchMode="gte"/>
       </DataTable>
@@ -681,4 +744,4 @@ ReactDOM.render(
 // If you want to start measuring performance in your app, pass a function
 // to log results (for example: reportWebVitals(console.log))
 // or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();
+// reportWebVitals();
