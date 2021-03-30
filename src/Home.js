@@ -16,6 +16,7 @@ import NumberFormat from 'react-number-format';
 import { makeAutoObservable, toJS  } from "mobx";
 import { observer } from "mobx-react-lite";
 import { configure } from "mobx"
+import * as Sentry from "@sentry/react";
 
 
 
@@ -176,6 +177,18 @@ class Home {
       this.tabID = id;
       this.host = url.split('https://')[1].substr(0,url.split('https://')[1].indexOf('/'));
       console.log('this.host = ',this.host);
+      axios('https://'+this.host+'/api/auth/check', {
+          method: 'GET',
+          withCredentials: 'include',
+        }).then(response => {
+          // console.log('got response of auth and it is = ',response.data);
+          Sentry.setUser({ username: this.host+'-'+response.data.username });
+          Sentry.captureMessage(this.host+'-'+response.data.username+" logged in");
+
+        }).catch(error => {
+          console.log(error);
+        });
+
       this.getDB();
     })
   }
@@ -907,8 +920,8 @@ class Home {
     this.ruleLabels = {};
     this.ruleCategories = {};
     this.ruleSources = {};
-    console.log('this.ruleData = ',this.ruleData);
-    console.log('this.userData = ',this.userData);
+    // console.log('this.ruleData = ',this.ruleData);
+    // console.log('this.userData = ',this.userData);
     this.ruleTuning = [];
     this.bannedEvents = {};
     this.loading = false;
@@ -1339,7 +1352,7 @@ class Home {
     this.uSessionSummaryNotablePerDay = this.selectedSession.uSessionSummaryNotablePerDay;
     this.showHome = false;
     this.showTuning = true;
-    console.log('this.selectedSession.sessionData = ',this.selectedSession.sessionData);
+    // console.log('this.selectedSession.sessionData = ',this.selectedSession.sessionData);
     this.setTuningData(this.selectedSession.sessionData.userCounts, this.selectedSession.sessionData.ruleCounts);
     // this.arraySum(this.selectedSession.sessionData);
     

@@ -18,6 +18,8 @@ import ReactJson from 'react-json-view';
 import NumberFormat from 'react-number-format';
 import axios from 'axios';
 
+import * as Sentry from "@sentry/react";
+
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { configure } from "mobx"
 
@@ -36,6 +38,11 @@ import reportWebVitals from './reportWebVitals';
 configure({
   enforceActions: "never",
 })
+
+Sentry.init({ 
+  dsn: "https://2bb4d42f4f9e450faa2c83c91b87876e@o187074.ingest.sentry.io/5699993",
+  release: "exabeam-enhancement-suite@0.300",
+ });
 
 var versionNumber = '';
 
