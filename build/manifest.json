@@ -1,6 +1,6 @@
 {
     "name": "Exabeam Enhancement Suite",
-    "version": "0.1",
+    "version": "0.3",
     "description": "Enhance Exabeam Advanced Analytics",
     "manifest_version": 2,
     "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsUyZX8wycL6zY104rYgQNdF3umqlPt4h+m6gaWphUrCI+joNVLgVhHNS1hZVeMJ7T7cVRUKu7/b3c2ylT/u8+XxvpP+4ind7Dj5y6wbVKFnPn+POgb891dL/f+eDS1nfPUrJHO+fdoKaES/1IabubGfRP7RXQzvu2tp3XdIcYQe0aUbT9GxmEu7F8pEeNbfcm0OwhhSrLdHa+T7NTruCl8FxKrldXcZJPc6UKFKxGYl7/xz6kKaj7URZfy9vwOurlv5OqkyxZkfGeUjCFhhrR9ANU1RDTCjF09NaKEMmihI4u9FmRME3YHeKHrDlE4tC7Biny8OJ+XEsutCIINzSuQIDAQAB",
@@ -15,7 +15,8 @@
     ],
     "content_scripts": [
         {
-          "matches": ["https://*/uba/*"],
+          "matches": ["https://*/uba/"],
+          "include_globs" :   ["*#home*"],
           "run_at": "document_idle",
           "js": ["THsearch.js"]
         }

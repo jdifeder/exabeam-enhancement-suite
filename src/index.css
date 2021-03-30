@@ -25,6 +25,7 @@ code {
   min-width: 1rem;
   height: 1rem;
   line-height: 1rem;
+  font-size: .7rem !important;
 }
 
 .p-component {
@@ -32,9 +33,6 @@ code {
 }
 
 .p-datatable.p-datatable-sm .p-datatable-tbody > tr > td {
-  padding: 0.0rem 0.1rem;
+  padding: 0.4rem 0.9rem 0.0rem 0.2rem;
 }
 
-.p-datatable-resizable .p-datatable-thead>tr>th, .p-datatable-resizable .p-datatable-tfoot>tr>td, .p-datatable-resizable .p-datatable-tbody>tr>td {
-  overflow: visible;
-}

@@ -14,16 +14,6 @@ The extension will automatically run once authentication is detected.
 	- Determine which event field values are causing the highest risk scores
 	- Simulate rule tuning by filtering field values from rules. 
 
-- **Data Validation (BETA):**
-
-**NOTE**: Work in progress. Any outputs by this feature should be manually verified.
-
-	- Get sample of up to 10 events of each Event Type to determine Sources and Event Types in timelines
-	- See which Sources and Event Types are present in User Sessions, but not Asset Sequences
-	- If DL is present, attempt to determine parsing differences between DL and AA
-	- Attempt to determine AA configuration errors
-
-  
 
 ## How to use
 
@@ -39,4 +29,4 @@ The extension will automatically run once authentication is detected.
 
 5. Click "Load Unpacked" and select the unzipped folder "exabeam-enhancement-suite".
 
-6. Open any Exabeam Advanced Analytics in a new Chrome tab and scroll to the bottom on the page.
+6. Open Exabeam Advanced Analytics in a new Chrome tab and scroll to the bottom on the page.

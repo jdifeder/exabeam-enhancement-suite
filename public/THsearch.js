@@ -1,4 +1,5 @@
 const host = location.host;
+const versionNumber = 0.300;
 
 var ifrm = document.createElement('iframe');
 // assign an id
@@ -17,6 +18,13 @@ ifrm.setAttribute('style', 'width:100%;height:100%;');
 // to place at end of document
 setTimeout(() => { document.body.appendChild(ifrm); }, 5000);
 
+chrome.runtime.onMessage.addListener(
+  function(request, sender, sendResponse) {
+    if (request.message === "versionCheck"){
+      sendResponse(versionNumber);
+    }
+    return true;
+})
 
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
@@ -28,11 +36,43 @@ chrome.runtime.onMessage.addListener(
           credentials: 'same-origin',
           mode: 'same-origin'
       })
-      .then(response => response.json())
-      .then(response => sendResponse(response)) 
-      .catch(err => sendResponse(err));
-      return true;
+        .then(response => response.json())
+        .then(response => {
+          var responseLimited = {};
+          responseLimited.entities = response.entities;
+          sendResponse(responseLimited);
+        }) 
+        .catch(err => {
+          console.log('got error in TH ', err);
+          sendResponse(err);
+        });
+        return true;
       }
+  });
+
+  chrome.runtime.onMessage.addListener(
+    function(request, sender, sendResponse) {
+      if (request.message === "allEventTypeSearch"){
+        fetch('https://'+host+'/uba/api/search/advanced/entities?', {
+          method: "POST",
+          body: 'criteria%5B%5D=%7B%22id%22%3A%22DR%22%2C%22v%22%3A%7B%22r%22%3A%7B%22unit%22%3A%22'+request.queryUnit+'%22%2C%22num%22%3A%22'+request.queryUnitNum+'%22%7D%7D%7D&sort=%7B%22by%22%3A%22riskScore%22%2C%22order%22%3A-1%7D&maxNumberOfResults=100',
+          headers: {"Content-type": "application/x-www-form-urlencoded; charset=UTF-8"},
+          credentials: 'same-origin',
+          mode: 'same-origin'
+      })
+        .then(response => response.json())
+        .then(response => {
+          var responseLimited = {};
+          responseLimited.eventTypes = response.eventTypes;
+          responseLimited.totalCount = response.totalCount;
+          sendResponse(responseLimited);
+        }) 
+        .catch(err => {
+          console.log('got error in TH ', err);
+          sendResponse(err);
+        });
+        return true;
+        }
   });
 
   chrome.runtime.onMessage.addListener(
@@ -46,8 +86,15 @@ chrome.runtime.onMessage.addListener(
           mode: 'same-origin'
       })
         .then(response => response.json())
-        .then(response => sendResponse(response)) 
-        .catch(err => sendResponse(err));
+        .then(response => {
+          var responseLimited = {};
+          responseLimited.entities = response.entities;
+          sendResponse(responseLimited);
+        }) 
+        .catch(err => {
+          console.log('got error in TH ', err);
+          sendResponse(err);
+        });
         return true;
         }
   });
@@ -63,8 +110,15 @@ chrome.runtime.onMessage.addListener(
           mode: 'same-origin'
       })
         .then(response => response.json())
-        .then(response => sendResponse(response)) 
-        .catch(err => sendResponse(err));
+        .then(response => {
+          var responseLimited = {};
+          responseLimited.entities = response.entities;
+          sendResponse(responseLimited);
+        }) 
+        .catch(err => {
+          console.log('got error in TH ', err);
+          sendResponse(err);
+        });
         return true;
         }
   });
@@ -80,8 +134,15 @@ chrome.runtime.onMessage.addListener(
           mode: 'same-origin'
       })
         .then(response => response.json())
-        .then(response => sendResponse(response)) 
-        .catch(err => sendResponse(err));
+        .then(response => {
+          var responseLimited = {};
+          responseLimited.entities = response.entities;
+          sendResponse(responseLimited);
+        }) 
+        .catch(err => {
+          console.log('got error in TH ', err);
+          sendResponse(err);
+        });
         return true;
         }
   });
@@ -96,10 +157,15 @@ chrome.runtime.onMessage.addListener(
           credentials: 'same-origin',
           mode: 'same-origin'
         })
-        .then(response => response.json())
-        .then(response => sendResponse(response)) 
-        .catch(err => sendResponse(err));
-        return true;
+          .then(response => response.json())
+          .then(response => {
+            sendResponse(response);
+          }) 
+          .catch(err => {
+            console.log('got error in TH ', err);
+            sendResponse(err);
+          });
+          return true;
       }
   });
 

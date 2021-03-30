@@ -8,7 +8,6 @@ import { Badge } from 'primereact/badge';
 import { InputText } from 'primereact/inputtext';
 import { TreeTable } from 'primereact/treetable';
 import { ProgressBar } from 'primereact/progressbar';
-import { Toast } from 'primereact/toast';
 import { Listbox } from 'primereact/listbox';
 import Dexie from 'dexie';
 import * as moment from 'moment';
@@ -41,6 +40,10 @@ class Home {
     showEvents = false;
     showMitre = true;
     showMitreRules = false;
+    showCategory = true;
+    showCategoryRules = false
+    showSource = true;
+    showSourceRules = false
     showValidation = false;
     onPreviousSession = false;
     showpRuleTuning = false;
@@ -56,9 +59,9 @@ class Home {
     visibleHostList = false;
     visibleSessionList = false;
     visibleParsingIssues = false;
+    visibleUpdateIssues = false;
     loading = false;
     activeIndex = 0;
-    bannedEvents = [];
     eventSummaryDataDone = [];
     
     
@@ -99,6 +102,7 @@ class Home {
     doneRawEventsCount = 0;
     validDoneRawEventsCount = 0;
     retryAttemptRawEventsCount = 0;
+    getAllEventsProgress = 'Pending...';
     trueOrFalse = [
       { label: 'True', value: 'true' },
       { label: 'False', value: 'false' }
@@ -125,31 +129,12 @@ class Home {
     sourcesGlobalFilter = '';
     eventTypesGlobalFilter = '';
     rulesAndModelsGlobalFilter = '';
+    
 
     
 
   constructor() {
-    makeAutoObservable(this, {
-      getNotables: false,
-      fixArray: false,
-      getSequences: false,
-      arraySum: false,
-      combineArrays: false,
-      findRequiredData: false,
-      getEventTypes: false,
-      getEventTypeSessions: false,
-      getEventTypeSessionDetails: false,
-      getEventTypeAssetDetails: false,
-      checkEventTypeSessionDetails: false,
-      checkEventTypeAssetDetails: false,
-      getRawEvents: false,
-      bootstrapEventTypes: false,
-      checkFeature: false,
-      checkMissingEvents: false,
-      addEventDetails: false,
-      determineSources: false
-
-    });
+    makeAutoObservable(this);
 
     this.sessionParsingIssues = [];
     this.assetParsingIssues = [];
@@ -165,15 +150,17 @@ class Home {
     this.selectedAssetDestIp = [];
     this.selectedAssetDestHost = [];
     this.selectedAssetHost = [];
+
+    this.doneEventTypes = [];
+    this.doneEventTypeSessions = [];
+    this.doneEventTypeAssets = [];
+    this.doneEventTypeSessionsDetails = [];
+    this.doneEventTypeAssetsDetails = [];
+    this.doneRawEvents = [];
     
   }
 
-    doneEventTypes = [];
-    doneEventTypeSessions = [];
-    doneEventTypeAssets = [];
-    doneEventTypeSessionsDetails = [];
-    doneEventTypeAssetsDetails = [];
-    doneRawEvents = [];
+    
 
   onHide = (name) => {
       this[name] = false;
@@ -223,12 +210,42 @@ class Home {
     ) 
   }
 
+  openTableButtonSelectRuleSource = (rowData, props) => {
+    return (
+      <>
+        <Button icon="pi pi-folder-open" onClick={() => this.onRowSelectSource(rowData)} />
+        <span> </span>
+        <NumberFormat value={rowData[props.field]} displayType={'text'} thousandSeparator={true} />
+      </>
+    ) 
+  }
+
   openTableButtonSelectMitre = (rowData, props) => {
     return (
       <>
-      <Button icon="pi pi-folder-open" onClick={() => this.onMitreSelect(rowData)} />
-      <span> {rowData[props.field]}</span>
-      
+        <Button icon="pi pi-folder-open" onClick={() => this.onMitreSelect(rowData)} />
+        <span> </span>
+        <NumberFormat value={rowData[props.field]} displayType={'text'} thousandSeparator={true} />     
+      </>
+    )
+  }
+
+  openTableButtonSelectCategory = (rowData, props) => {
+    return (
+      <>
+        <Button icon="pi pi-folder-open" onClick={() => this.onCategorySelect(rowData)} />
+        <span> </span>
+        <NumberFormat value={rowData[props.field]} displayType={'text'} thousandSeparator={true} />     
+      </>
+    )
+  }
+
+  openTableButtonSelectSourceRule = (rowData, props) => {
+    return (
+      <>
+        <Button icon="pi pi-folder-open" onClick={() => this.onSourceRuleSelect(rowData)} />
+        <span> </span>
+        <NumberFormat value={rowData[props.field]} displayType={'text'} thousandSeparator={true} />     
       </>
     )
   }
@@ -251,6 +268,25 @@ class Home {
       <NumberFormat value={rowData[props.field]} displayType={'text'} thousandSeparator={true} />
       <span style={{ color: 'green' }}> ({rowData[percentField]}%) </span>
     </>)
+  }
+
+  openTableButtonSelectSampleEvents = (rowData) => {
+    let booleanString = rowData.sessionEvents.length + rowData.assetEvents.length;
+    return (
+      <>
+      {booleanString > 0 ?
+        <>
+          <i className="pi pi-list p-mr-4 p-text-secondary p-overlay-badge" style={{ fontSize: "1rem", cursor: "pointer" }} onClick={() => this.onSourceSelect(rowData.sessionEvents,rowData.assetEvents,'AA User Session Events','AA Asset Session Events')}>
+            <Badge value={booleanString}></Badge>
+          </i>
+        </>
+      :
+        <>
+          <Badge value={booleanString} className="p-mr-2" ></Badge>
+        </>
+      }
+    </>
+    )
   }
 
   openTableButtonSelectConfigIssue = (rowData, props) => {
@@ -869,14 +905,39 @@ class Home {
     this.ruleData = ruleCounts;
     this.sessionData = sessionCounts;
     this.ruleLabels = {};
-    // console.log('this.ruleData = ',this.ruleData);
-    // console.log('this.userData = ',this.userData);
+    this.ruleCategories = {};
+    this.ruleSources = {};
+    console.log('this.ruleData = ',this.ruleData);
+    console.log('this.userData = ',this.userData);
     this.ruleTuning = [];
-    this.bannedEvents = [];
+    this.bannedEvents = {};
     this.loading = false;
     this.visibleTuningProgress = false;
 
     for (var i=0; i < this.ruleData.length; i++) {
+      if(typeof this.ruleCategories[this.ruleData[i].ruleDef.ruleCategory] === 'undefined') {
+        this.ruleCategories[this.ruleData[i].ruleDef.ruleCategory] = {};
+        this.ruleCategories[this.ruleData[i].ruleDef.ruleCategory].categoryName = this.ruleData[i].ruleDef.ruleCategory;
+        this.ruleCategories[this.ruleData[i].ruleDef.ruleCategory].count = this.ruleData[i].count;
+        this.ruleCategories[this.ruleData[i].ruleDef.ruleCategory].totalScore = this.ruleData[i].totalScore;
+        this.ruleCategories[this.ruleData[i].ruleDef.ruleCategory].sessionCount = this.ruleData[i].sessionCount;
+        this.ruleCategories[this.ruleData[i].ruleDef.ruleCategory].rules = [];
+      } else {
+        this.ruleCategories[this.ruleData[i].ruleDef.ruleCategory].count = this.ruleCategories[this.ruleData[i].ruleDef.ruleCategory].count + this.ruleData[i].count
+        this.ruleCategories[this.ruleData[i].ruleDef.ruleCategory].totalScore = this.ruleCategories[this.ruleData[i].ruleDef.ruleCategory].totalScore + this.ruleData[i].totalScore;
+        this.ruleCategories[this.ruleData[i].ruleDef.ruleCategory].sessionCount = this.ruleCategories[this.ruleData[i].ruleDef.ruleCategory].sessionCount + this.ruleData[i].sessionCount;
+      }
+      this.ruleCategories[this.ruleData[i].ruleDef.ruleCategory].rules.push(
+        {
+          rule: this.ruleData[i].rule,
+          name: this.ruleData[i].ruleName,
+          count: this.ruleData[i].count,
+          totalScore: this.ruleData[i].totalScore,
+          sessionCount: this.ruleData[i].sessionCount,
+          ruleDef: this.ruleData[i].ruleDef,
+          sessionIDs: this.ruleData[i].sessionIDs
+        }
+      );
       this.ruleData[i].ruleDef.ruleLabels.forEach((obj2) => {
         if(typeof this.ruleLabels[obj2.type.concat('-',obj2.id)] === 'undefined') {
           this.ruleLabels[obj2.type.concat('-',obj2.id)] = {};
@@ -905,9 +966,67 @@ class Home {
           }
         );
       })
+      this.ruleData[i].events.forEach((obj) => {
+        if(typeof this.bannedEvents[obj.event_id.concat('-',this.ruleData[i].ruleName)] === 'undefined') {
+          if(typeof this.ruleSources[obj.source] === 'undefined') {
+            this.ruleSources[obj.source] = {};
+            this.ruleSources[obj.source].sourceName = obj.source;
+            this.ruleSources[obj.source].count = 1;
+            this.ruleSources[obj.source].totalScore = obj['riskScore-'+this.ruleData[i].rule];
+            this.ruleSources[obj.source].sessionCount = 0;
+            this.ruleSources[obj.source].rules = [];
+            this.ruleSources[obj.source].sessions = [];
+            
+          } else {
+            this.ruleSources[obj.source].count++
+            this.ruleSources[obj.source].totalScore = this.ruleSources[obj.source].totalScore + obj['riskScore-'+this.ruleData[i].rule];
+          }
+          if(this.ruleSources[obj.source].sessions.some(sessionID => sessionID === obj.origSessionId)) {
+          } else {
+            this.ruleSources[obj.source].sessions.push(obj.origSessionId);
+            this.ruleSources[obj.source].sessionCount = this.ruleSources[obj.source].sessions.length; 
+          }
+          if(this.ruleSources[obj.source].rules.some(rule => rule.rule === this.ruleData[i].rule)) {
+            this.ruleSources[obj.source].rules.forEach((obj2) => {
+              if(obj2.rule === this.ruleData[i].rule) {
+                if(obj2.sessionIDs.some(session => session.id === obj.origSessionId)) {
+                } else {
+                  this.ruleData[i].sessionIDs.forEach((obj3) => {
+                    if(obj3.id === obj.origSessionId) {
+                      obj2.sessionIDs.push(obj3);
+                      obj2.sessionCount++;
+                    }
+                  })
+                }
+                if(obj2.events.some(event => event.event_id === obj.event_id)) {
+                } else {
+                  obj2.events.push(obj);
+                  obj2.count++;
+                  obj2.totalScore = obj2.totalScore + obj['riskScore-'+this.ruleData[i].rule];
+                }
+              }
+            })
+          } else {
+            this.ruleSources[obj.source].rules.push(
+              {
+                rule: this.ruleData[i].rule,
+                name: this.ruleData[i].ruleName,
+                count: 1,
+                totalScore: obj['riskScore-'+this.ruleData[i].rule],
+                sessionCount: 1,
+                ruleDef: this.ruleData[i].ruleDef,
+                sessionIDs: [obj.origSessionId],
+                events: [obj]
+              }
+            );
+          }
+        } 
+      })
     }
     this.ruleLabels = Object.values(this.ruleLabels);
-    // console.log('this.ruleLabels = ', this.ruleLabels);
+    this.ruleCategories = Object.values(this.ruleCategories);
+    this.ruleSources = Object.values(this.ruleSources);
+    console.log('this.ruleSources = ', this.ruleSources);
 
     this.columns1 = [
       { field: 'user', header: 'User' },
@@ -953,6 +1072,183 @@ class Home {
     
   }
 
+  setEvents(ruleName, events) {
+    this.tempCount = 0;
+    this.showTuning = false;
+    this.showEvents = true;
+    this.eventData = [];
+    this.eventSummaryData = [];
+    this.eventSummaryData2 = {};
+    for (var i=0; i < this.thResultsUsers.ruleCounts.length; i++) {
+      if(this.thResultsUsers.ruleCounts[i].rule === ruleName){
+        if(events.length === 0) {
+          this.eventData = this.thResultsUsers.ruleCounts[i].events;
+        } else {
+          this.eventData = events;
+        }
+        this.eventData.forEach((obj) => {
+          if(typeof this.bannedEvents[obj.event_id.concat('-',ruleName)] === 'undefined') {
+            Object.keys(obj).forEach((obj2) => {
+              if(obj2 != 'time' && obj2 != 'rawlog_time' && obj2 != 'session_order' && obj2 != 'event_id' && obj2 != 'alert_id' && obj2 != 'riskScore' && obj2 != 'is_session_last' && obj2 != 'rawlog_refs' && obj2.substring(0,obj2.indexOf('-')) != 'riskScore' && obj[obj2] != ''){
+                if(typeof this.eventSummaryData2[obj2.concat('-',obj[obj2])] === 'undefined') {
+                  this.eventSummaryData2[obj2.concat('-',obj[obj2])] = {};
+                  this.eventSummaryData2[obj2.concat('-',obj[obj2])].fieldName = obj2;
+                  this.eventSummaryData2[obj2.concat('-',obj[obj2])].fieldValue = obj[obj2];
+                  this.eventSummaryData2[obj2.concat('-',obj[obj2])].count = 1;
+                  this.eventSummaryData2[obj2.concat('-',obj[obj2])].totalScore = obj['riskScore-'+this.selectedRule];
+                  this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionCount = 0;
+                  this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionIDs = [];
+                  if(this.thResultsUsers.ruleCounts[i].sessionIDs.some(id => id.id === obj.origSessionId)) {
+                    this.thResultsUsers.ruleCounts[i].sessionIDs.forEach((obj3) => {
+                      if(obj3.id === obj.origSessionId) {
+                        this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionIDs.push(obj3);
+                        this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionCount++;
+                      }
+                    })
+                  } 
+                  this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionCountPercent = Math.round(((this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionCount / this.selectedRuleSessionCount))*100);
+                } else {
+                  this.eventSummaryData2[obj2.concat('-',obj[obj2])].count++;
+                  this.eventSummaryData2[obj2.concat('-',obj[obj2])].totalScore = this.eventSummaryData2[obj2.concat('-',obj[obj2])].totalScore + obj['riskScore-'+this.selectedRule];
+                  this.eventSummaryData2[obj2.concat('-',obj[obj2])].countPercent = Math.round(((this.eventSummaryData2[obj2.concat('-',obj[obj2])].count / this.selectedRuleCount))*100);
+                  this.eventSummaryData2[obj2.concat('-',obj[obj2])].totalScorePercent = Math.round(((this.eventSummaryData2[obj2.concat('-',obj[obj2])].totalScore / this.selectedRuleScore))*100);
+                  if(this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionIDs.some(id => id.id === obj.origSessionId)) {
+                  } else {
+                    if(this.thResultsUsers.ruleCounts[i].sessionIDs.some(id => id.id === obj.origSessionId)) {
+                      this.thResultsUsers.ruleCounts[i].sessionIDs.forEach((obj3) => {
+                        if(obj3.id === obj.origSessionId) {
+                          this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionIDs.push(obj3);
+                          this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionCount++;
+                          this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionCountPercent = Math.round(((this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionCount / this.selectedRuleSessionCount))*100);
+                        }
+                      })
+                    }
+                  }
+                } 
+              }     
+            })
+          }
+        })
+      } 
+    }
+
+    this.eventSummaryData = Object.values(this.eventSummaryData2);
+    this.eventSummaryData2 = [];
+    this.eventSummaryDataDone = this.eventSummaryData;
+    this.eventSummaryData = [];
+    this.loading = false;
+    
+
+  }
+  
+  tuneRule(data){
+    this.foundRule = false;
+    //Add rule tuning conditions to array
+    if(this.ruleTuning.length == 0){
+      this.ruleTuning.push({'data':{'name': this.selectedRule, 'value': '', 'count': '', 'score': '', 'sessionCount': ''},'children': []});
+      this.ruleTuning[0].children.push({'data':{'name': data.fieldName, 'value': data.fieldValue, 'count': data.count, 'score':data.totalScore, 'sessionCount':data.sessionCount, 'scorePercent': Math.round(((data.totalScore / this.uSessionSummaryRiskScore))*100)}})
+    } else {
+      this.ruleTuning.forEach((obj, index) => {
+        if(obj.data.name === this.selectedRule) {
+          this.foundRule = true;
+          if(obj.children.some(theEvent => theEvent.data.name === data.fieldName && theEvent.data.value === data.fieldValue)) {
+          } else {
+            obj.children.push({'data':{'name': data.fieldName, 'value': data.fieldValue, 'count': data.count, 'score':data.totalScore, 'sessionCount': data.sessionCount, 'scorePercent': Math.round(((data.totalScore / this.uSessionSummaryRiskScore))*100)}})           
+          }
+          
+        }
+      })
+      if(this.foundRule == false) {
+        this.ruleTuning.push({'data':{'name': this.selectedRule, 'value': '', 'count': '', 'score': '', 'sessionCount': ''},'children': [{'data':{'name': data.fieldName, 'value': data.fieldValue, 'count': data.count, 'score':data.totalScore, 'sessionCount':data.sessionCount, 'scorePercent': Math.round(((data.totalScore / this.uSessionSummaryRiskScore))*100)}}]});
+      }
+    }
+
+    //Go back through tuned rules and sum up changes per rule
+    this.ruleTuning.forEach((obj, index) => {
+      obj.data.count = 0;
+      obj.data.score = 0;
+      obj.data.sessionCount = 0;
+      obj.children.forEach((obj2, index2) => {
+        obj.data.count = obj.data.count + obj2.data.count;
+        obj.data.score = obj.data.score + obj2.data.score;
+        obj.data.sessionCount = obj.data.sessionCount + obj2.data.sessionCount;
+      })
+    })
+
+    //Apply changes to rule counts
+    for (var b=0; b < this.thResultsUsers.ruleCounts.length; b++) {
+      this.ruleTuning.forEach((obj, index) => {
+        if (obj.data.name === this.thResultsUsers.ruleCounts[b].rule) {
+          this.thResultsUsers.ruleCounts[b].count = this.thResultsUsers.ruleCounts[b].originalCount - obj.data.count;
+          this.thResultsUsers.ruleCounts[b].totalScore = this.thResultsUsers.ruleCounts[b].originalTotalScore - obj.data.score;
+          this.thResultsUsers.ruleCounts[b].sessionCount = this.thResultsUsers.ruleCounts[b].originalSessionCount - obj.data.sessionCount;
+          if(obj.data.name === this.selectedRule) {
+            this.selectedRuleScore = this.thResultsUsers.ruleCounts[b].totalScore;
+            this.selectedRuleCount = this.thResultsUsers.ruleCounts[b].count;
+            this.selectedRuleSessionCount = this.thResultsUsers.ruleCounts[b].sessionCount;
+          }
+        }
+      })
+    }
+    this.ruleData = this.thResultsUsers.ruleCounts;
+    
+
+    this.eventData.forEach((obj) => {
+      Object.keys(obj).forEach((obj2) => {
+        if(data.fieldName === obj2 && data.fieldValue === obj[obj2]) {
+          this.bannedEvents[obj.event_id.concat('-',this.selectedRule)] = {}
+          this.bannedEvents[obj.event_id.concat('-',this.selectedRule)].event_id = obj.event_id;
+          this.bannedEvents[obj.event_id.concat('-',this.selectedRule)].rule = this.selectedRule;
+        }
+      })      
+    })
+
+    //Test out rule exceptions on sessions
+    this.thResultsUsers.sessions.forEach((obj) => {
+      obj.riskScoreTuned = obj.riskScore;
+      Object.keys(obj.rules.triggeredRuleEvents).forEach((obj2) => {
+        Object.keys(obj.rules.triggeredRuleEvents[obj2].fields).forEach((obj5) => {
+          if(typeof this.bannedEvents[obj2.concat('-',obj5.substring(obj5.indexOf('-') + 1))] !== 'undefined') {
+            obj.riskScoreTuned = obj.riskScoreTuned - obj.rules.triggeredRuleEvents[obj2].fields[obj5];
+          }
+        })
+      })
+    })
+
+    // Calculate results of rule exceptions on sessions
+    this.uSessionSummaryTunedNotableCount = 0;
+    this.uSessionSummaryTunedNotablePerDay = 0;
+    this.uSessionSummaryTunedRiskScore = 0;
+    this.uSessionSummaryTunedNotableCountPercent = 0;
+    this.uSessionSummaryTunedNotablePerDayPercent = 0;
+    this.uSessionSummaryTunedRiskScorePercent = 0;
+    for (var i=0; i < this.thResultsUsers.sessions.length; i++) {
+      if(this.thResultsUsers.sessions[i].riskScoreTuned >= 90) this.uSessionSummaryTunedNotableCount = this.uSessionSummaryTunedNotableCount + 1
+      this.uSessionSummaryTunedRiskScore = this.uSessionSummaryTunedRiskScore + this.thResultsUsers.sessions[i].riskScoreTuned;
+    }
+    this.uSessionSummaryTunedNotablePerDay = Math.round(this.uSessionSummaryTunedNotableCount / this.queryUnitNum );
+    this.uSessionSummaryTunedNotableCountPercent = Math.round(((this.uSessionSummaryTunedNotableCount / this.uSessionSummaryNotableCount)-1)*100);
+    this.uSessionSummaryTunedNotablePerDayPercent = Math.round(((this.uSessionSummaryTunedNotablePerDay / this.uSessionSummaryNotablePerDay)-1)*100);
+    this.uSessionSummaryTunedRiskScorePercent = Math.round(((this.uSessionSummaryTunedRiskScore / this.uSessionSummaryRiskScore)-1)*100);
+
+    //Reset user session score rollup and re-evaluate based on the tuned risk scores from sessions
+    this.thResultsUsers.userCounts.forEach((obj, index) => {
+      obj.totalScore = 0;
+    })
+    for (var i=0; i < this.thResultsUsers.sessions.length; i++) {
+      for (var b=0; b < this.thResultsUsers.userCounts.length; b++) {
+        if (this.thResultsUsers.sessions[i].user === this.thResultsUsers.userCounts[b].user) {
+          this.thResultsUsers.userCounts[b].totalScore = this.thResultsUsers.userCounts[b].totalScore + this.thResultsUsers.sessions[i].riskScoreTuned;
+        }
+      }     
+    }
+    this.userData = this.thResultsUsers.userCounts;
+
+    //re-calcualte results of rule exceptions on event data
+    this.setEvents(this.selectedRule, []);
+    
+  }
+
   async storeTuningSession() {
     var db = new Dexie(this.dbName);
     db.version(1).stores(this.dbStores);
@@ -971,6 +1267,7 @@ class Home {
   }
 
   async storeValidationSession() {
+    console.log('starting storeValidationSession');
     var db = new Dexie(this.dbName);
     db.version(1).stores(this.dbStores);
     if(this.onPreviousSession) {
@@ -1042,6 +1339,7 @@ class Home {
     this.uSessionSummaryNotablePerDay = this.selectedSession.uSessionSummaryNotablePerDay;
     this.showHome = false;
     this.showTuning = true;
+    console.log('this.selectedSession.sessionData = ',this.selectedSession.sessionData);
     this.setTuningData(this.selectedSession.sessionData.userCounts, this.selectedSession.sessionData.ruleCounts);
     // this.arraySum(this.selectedSession.sessionData);
     
@@ -1052,17 +1350,21 @@ class Home {
     db.version(1).stores(this.dbStores);
     this.selectedSession = await db.table(this.dataValidationDb).where({id: rowData.id}).toArray();
     this.selectedSession = this.selectedSession[0];
+    console.log('in selDvSession and this.selectedSession = ',this.selectedSession);
     this.onDvSessionSelect();
   }
 
   onDvSessionSelect() {
-    // console.log('onDvSessionSelect started');
+    console.log('onDvSessionSelect started');
     this.onPreviousSession = true;
     this.rulesAndModels = this.selectedSession.rulesAndModels;
     this.rulesAndModelsDone = this.selectedSession.rulesAndModels;
     this.eventTypes = this.selectedSession.eventTypes;
     this.eventTypesDone = this.eventTypes;
-    this.summary = this.selectedSession.summary;
+    // this.summary = this.selectedSession.summary;
+    this.summary = {};
+    this.summary.uniqueUsers = {};
+    this.summary.uniqueHosts = {};
     this.showHome = false;
     this.showValidation = true;
     this.getRawEvents(0,0)
@@ -1105,9 +1407,19 @@ class Home {
     this.showTuning = false;
     this.showEvents = true;
     this.loading = true;
-    this.setEvents(event.rule);
-    
-    
+    this.setEvents(event.rule, []);
+  }
+
+  onRowSelectSource(event) {
+    this.selectedRule = event.rule;
+    this.selectedRuleCount = event.count;
+    this.selectedRuleScore = event.totalScore;
+    this.selectedRuleSessionCount = event.sessionCount;
+    console.log('selected rule = ', event.rule);
+    this.showTuning = false;
+    this.showEvents = true;
+    this.loading = true;
+    this.setEvents(event.rule, event.events);
   }
 
   onMitreSelect (rowData) {
@@ -1115,12 +1427,35 @@ class Home {
     this.selectedRules = rowData.rules;
     this.showMitre = false;
     this.showMitreRules = true;
-
   }
 
   toggleShowMitre() {
     this.showMitre = true;
     this.showMitreRules = false;
+  }
+
+  onCategorySelect (rowData) {
+    this.selectedCategory = rowData.categoryName;
+    this.selectedRules = rowData.rules;
+    this.showCategory = false;
+    this.showCategoryRules = true;
+  }
+
+  toggleShowCategories() {
+    this.showCategory = true;
+    this.showCategoryRules = false;
+  }
+
+  onSourceRuleSelect (rowData) {
+    this.selectedSource = rowData.sourceName;
+    this.selectedRules = rowData.rules;
+    this.showSource = false;
+    this.showSourceRules = true;
+  }
+
+  toggleShowSources() {
+    this.showSource = true;
+    this.showSourceRules = false;
   }
 
   toggleShowEvents() {
@@ -1140,8 +1475,8 @@ class Home {
     this.allRules = null;
     this.allModels = null; 
     this.summary = {};
-    this.summary.uniqueUsers = [];
-    this.summary.uniqueHosts = [];
+    this.summary.uniqueUsers = {};
+    this.summary.uniqueHosts = {};
     this.summary.uniqueIPs = [];
     this.summary.uniqueUserCount = 0;
     this.summary.uniqueHostCount = 0;
@@ -1169,235 +1504,7 @@ class Home {
     this.showHome = true;
   }
 
-  setEvents(ruleName) {
-    this.tempCount = 0;
-    this.showTuning = false;
-    this.showEvents = true;
-    this.eventData = [];
-    this.eventSummaryData = [];
-    this.eventSummaryData2 = {};
-    for (var i=0; i < this.thResultsUsers.ruleCounts.length; i++) {
-      if(this.thResultsUsers.ruleCounts[i].rule === ruleName){
-        this.eventData = this.thResultsUsers.ruleCounts[i].events;
-        this.eventData.forEach((obj) => {
-          if(this.bannedEvents.some(theEvent => theEvent.event_id === obj.event_id)) {
-            this.bannedEvents.forEach((obj3) => {
-              if(obj3.event_id === obj.event_id){
-                if(obj3.rules.some(theRule => theRule === ruleName)){           
-                } else {
-                  Object.keys(obj).forEach((obj2) => {
-                    if(obj2 != 'time' && obj2 != 'rawlog_time' && obj2 != 'session_order' && obj2 != 'event_id' && obj2 != 'alert_id' && obj2 != 'riskScore' && obj2 != 'is_session_last' && obj2 != 'rawlog_refs' && obj2.substring(0,obj2.indexOf('-')) != 'riskScore' && obj[obj2] != ''){
-                      if(typeof this.eventSummaryData2[obj2.concat('-',obj[obj2])] === 'undefined') {
-                        this.eventSummaryData2[obj2.concat('-',obj[obj2])] = {};
-                        this.eventSummaryData2[obj2.concat('-',obj[obj2])].fieldName = obj2;
-                        this.eventSummaryData2[obj2.concat('-',obj[obj2])].fieldValue = obj[obj2];
-                        this.eventSummaryData2[obj2.concat('-',obj[obj2])].count = 1;
-                        this.eventSummaryData2[obj2.concat('-',obj[obj2])].totalScore = obj['riskScore-'+this.selectedRule];
-                        this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionCount = 0;
-                        this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionIds = [];
-                        if(this.thResultsUsers.ruleCounts[i].sessionIDs.some(id => id.id === obj.origSessionId)) {
-                          this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionIds.push({id: obj.origSessionId});
-                          this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionCount++;
-                        } 
-                        this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionCountPercent = Math.round(((this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionCount / this.selectedRuleSessionCount))*100);
-                      } else {
-                        this.eventSummaryData2[obj2.concat('-',obj[obj2])].count++;
-                        this.eventSummaryData2[obj2.concat('-',obj[obj2])].totalScore = this.eventSummaryData2[obj2.concat('-',obj[obj2])].totalScore + obj['riskScore-'+this.selectedRule];
-                        this.eventSummaryData2[obj2.concat('-',obj[obj2])].countPercent = Math.round(((this.eventSummaryData2[obj2.concat('-',obj[obj2])].count / this.selectedRuleCount))*100);
-                        this.eventSummaryData2[obj2.concat('-',obj[obj2])].totalScorePercent = Math.round(((this.eventSummaryData2[obj2.concat('-',obj[obj2])].totalScore / this.selectedRuleScore))*100);
-                        if(this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionIds.some(id => id.id === obj.origSessionId)) {
-                        } else {
-                          if(this.thResultsUsers.ruleCounts[i].sessionIDs.some(id => id.id === obj.origSessionId)) {
-                            this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionIds.push({id: obj.origSessionId});
-                            this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionCount++;
-                            this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionCountPercent = Math.round(((this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionCount / this.selectedRuleSessionCount))*100);
-                          }
-                        }
-                      } 
-                    }     
-                  })
-                }
-              }
-            })
-          } else {
-            Object.keys(obj).forEach((obj2) => {
-              if(obj2 != 'time' && obj2 != 'rawlog_time' && obj2 != 'session_order' && obj2 != 'event_id' && obj2 != 'alert_id' && obj2 != 'riskScore' && obj2 != 'is_session_last' && obj2 != 'rawlog_refs' && obj2.substring(0,obj2.indexOf('-')) != 'riskScore' && obj[obj2] != ''){
-                if(typeof this.eventSummaryData2[obj2.concat('-',obj[obj2])] === 'undefined') {
-                  this.eventSummaryData2[obj2.concat('-',obj[obj2])] = {};
-                  this.eventSummaryData2[obj2.concat('-',obj[obj2])].fieldName = obj2;
-                  this.eventSummaryData2[obj2.concat('-',obj[obj2])].fieldValue = obj[obj2];
-                  this.eventSummaryData2[obj2.concat('-',obj[obj2])].count = 1;
-                  this.eventSummaryData2[obj2.concat('-',obj[obj2])].totalScore = obj['riskScore-'+this.selectedRule];
-                  this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionCount = 0;
-                  this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionIds = [];
-                  if(this.thResultsUsers.ruleCounts[i].sessionIDs.some(id => id.id === obj.origSessionId)) {
-                    this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionIds.push({id: obj.origSessionId});
-                    this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionCount++;
-                  }
-                  this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionCountPercent = Math.round(((this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionCount / this.selectedRuleSessionCount))*100);
-                } else {
-                  this.eventSummaryData2[obj2.concat('-',obj[obj2])].count++;
-                  this.eventSummaryData2[obj2.concat('-',obj[obj2])].totalScore = this.eventSummaryData2[obj2.concat('-',obj[obj2])].totalScore + obj['riskScore-'+this.selectedRule];
-                  this.eventSummaryData2[obj2.concat('-',obj[obj2])].countPercent = Math.round(((this.eventSummaryData2[obj2.concat('-',obj[obj2])].count / this.selectedRuleCount))*100);
-                  this.eventSummaryData2[obj2.concat('-',obj[obj2])].totalScorePercent = Math.round(((this.eventSummaryData2[obj2.concat('-',obj[obj2])].totalScore / this.selectedRuleScore))*100);
-                  if(this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionIds.some(id => id.id === obj.origSessionId)) {
-                  } else {
-                    if(this.thResultsUsers.ruleCounts[i].sessionIDs.some(id => id.id === obj.origSessionId)) {
-                      this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionIds.push({id: obj.origSessionId});
-                      this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionCount++;
-                      this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionCountPercent = Math.round(((this.eventSummaryData2[obj2.concat('-',obj[obj2])].sessionCount / this.selectedRuleSessionCount))*100);
-                    }
-                  } 
-                } 
-              }     
-            })
-          }
-          
-        })
-      } 
-    }
-
-    this.eventSummaryData = Object.values(this.eventSummaryData2);
-    this.eventSummaryData2 = [];
-    this.eventSummaryDataDone = this.eventSummaryData;
-    this.eventSummaryData = [];
-    this.loading = false;
-    
-
-  }
-
   
-
-
-  
-  tuneRule(data){
-    this.foundRule = false;
-    //Add rule tuning conditions to array
-    if(this.ruleTuning.length == 0){
-      this.ruleTuning.push({'data':{'name': this.selectedRule, 'value': '', 'count': '', 'score': '', 'sessionCount': ''},'children': []});
-      this.ruleTuning[0].children.push({'data':{'name': data.fieldName, 'value': data.fieldValue, 'count': data.count, 'score':data.totalScore, 'sessionCount':data.sessionCount, 'scorePercent': Math.round(((data.totalScore / this.uSessionSummaryRiskScore))*100)}})
-    } else {
-      this.ruleTuning.forEach((obj, index) => {
-        if(obj.data.name === this.selectedRule) {
-          this.foundRule = true;
-          if(obj.children.some(theEvent => theEvent.data.name === data.fieldName && theEvent.data.value === data.fieldValue)) {
-          } else {
-            obj.children.push({'data':{'name': data.fieldName, 'value': data.fieldValue, 'count': data.count, 'score':data.totalScore, 'sessionCount': data.sessionCount, 'scorePercent': Math.round(((data.totalScore / this.uSessionSummaryRiskScore))*100)}})           
-          }
-          
-        }
-      })
-      if(this.foundRule == false) {
-        this.ruleTuning.push({'data':{'name': this.selectedRule, 'value': '', 'count': '', 'score': '', 'sessionCount': ''},'children': [{'data':{'name': data.fieldName, 'value': data.fieldValue, 'count': data.count, 'score':data.totalScore, 'sessionCount':data.sessionCount, 'scorePercent': Math.round(((data.totalScore / this.uSessionSummaryRiskScore))*100)}}]});
-      }
-    }
-
-    //Go back through tuned rules and sum up changes per rule
-    this.ruleTuning.forEach((obj, index) => {
-      obj.data.count = 0;
-      obj.data.score = 0;
-      obj.data.sessionCount = 0;
-      obj.children.forEach((obj2, index2) => {
-        obj.data.count = obj.data.count + obj2.data.count;
-        obj.data.score = obj.data.score + obj2.data.score;
-        obj.data.sessionCount = obj.data.sessionCount + obj2.data.sessionCount;
-      })
-    })
-
-    //Apply changes to rule counts
-    for (var b=0; b < this.thResultsUsers.ruleCounts.length; b++) {
-      this.ruleTuning.forEach((obj, index) => {
-        if (obj.data.name === this.thResultsUsers.ruleCounts[b].rule) {
-          this.thResultsUsers.ruleCounts[b].count = this.thResultsUsers.ruleCounts[b].originalCount - obj.data.count;
-          this.thResultsUsers.ruleCounts[b].totalScore = this.thResultsUsers.ruleCounts[b].originalTotalScore - obj.data.score;
-          this.thResultsUsers.ruleCounts[b].sessionCount = this.thResultsUsers.ruleCounts[b].originalSessionCount - obj.data.sessionCount;
-          if(obj.data.name === this.selectedRule) {
-            this.selectedRuleScore = this.thResultsUsers.ruleCounts[b].totalScore;
-            this.selectedRuleCount = this.thResultsUsers.ruleCounts[b].count;
-            this.selectedRuleSessionCount = this.thResultsUsers.ruleCounts[b].sessionCount;
-          }
-        }
-      })
-    }
-    this.ruleData = this.thResultsUsers.ruleCounts;
-    
-
-    this.eventData.forEach((obj, index) => {
-      Object.keys(obj).forEach((obj2, index2) => {
-        if(data.fieldName === obj2 && data.fieldValue === obj[obj2]) {
-          if(this.bannedEvents.some(theEvent => theEvent.event_id === obj.event_id)) {
-            this.bannedEvents.forEach((obj3, index3) => {
-              if(obj3.event_id === obj.event_id){
-                if(obj3.rules.some(theRule => theRule === this.selectedRule)){    
-                  //console.log(this.selectedRule+ ' is already banned for event_id '+obj.event_id);         
-                } else {
-                  obj3.event_id[obj.event_id].rules.push(this.selectedRule);
-                } 
-              }
-            })                 
-          } else {
-            this.bannedEvents.push({'event_id': obj.event_id, 'rules': [this.selectedRule]})
-          }
-        }
-      })      
-    })
-
-    //Test out rule exceptions on sessions
-    this.thResultsUsers.sessions.forEach((obj, index) => {
-      obj.riskScoreTuned = obj.riskScore;
-      Object.keys(obj.rules.triggeredRuleEvents).forEach((obj2, index2) => {
-        if(this.bannedEvents.some(theEvent => theEvent.event_id === obj2)) {
-          this.bannedEvents.forEach((obj3, index3) => {
-            if(obj3.event_id === obj2) {
-              obj3.rules.forEach((obj4, index4) => {
-                Object.keys(obj.rules.triggeredRuleEvents[obj2].fields).forEach((obj5, index4) => {
-                  //console.log ('obj5 = '+obj5 + ' '+ obj5.substring(obj5.indexOf('-') + 1));
-                  if(obj3.rules.some(theRule => theRule === obj5.substring(obj5.indexOf('-') + 1))){ 
-                    //console.log('found one at index '+ index);
-                    //console.log('subtracting '+obj.rules.triggeredRuleEvents[obj2].fields[obj5]+ ' from '+obj.riskScoreTuned);
-                    obj.riskScoreTuned = obj.riskScoreTuned - obj.rules.triggeredRuleEvents[obj2].fields[obj5];        
-                  } 
-                })
-              })
-            }   
-          })
-        }
-      })
-    })
-
-    // Calculate results of rule exceptions on sessions
-    this.uSessionSummaryTunedNotableCount = 0;
-    this.uSessionSummaryTunedNotablePerDay = 0;
-    this.uSessionSummaryTunedRiskScore = 0;
-    this.uSessionSummaryTunedNotableCountPercent = 0;
-    this.uSessionSummaryTunedNotablePerDayPercent = 0;
-    this.uSessionSummaryTunedRiskScorePercent = 0;
-    for (var i=0; i < this.thResultsUsers.sessions.length; i++) {
-      if(this.thResultsUsers.sessions[i].riskScoreTuned >= 90) this.uSessionSummaryTunedNotableCount = this.uSessionSummaryTunedNotableCount + 1
-      this.uSessionSummaryTunedRiskScore = this.uSessionSummaryTunedRiskScore + this.thResultsUsers.sessions[i].riskScoreTuned;
-    }
-    this.uSessionSummaryTunedNotablePerDay = Math.round(this.uSessionSummaryTunedNotableCount / this.queryUnitNum );
-    this.uSessionSummaryTunedNotableCountPercent = Math.round(((this.uSessionSummaryTunedNotableCount / this.uSessionSummaryNotableCount)-1)*100);
-    this.uSessionSummaryTunedNotablePerDayPercent = Math.round(((this.uSessionSummaryTunedNotablePerDay / this.uSessionSummaryNotablePerDay)-1)*100);
-    this.uSessionSummaryTunedRiskScorePercent = Math.round(((this.uSessionSummaryTunedRiskScore / this.uSessionSummaryRiskScore)-1)*100);
-
-    //Reset user session score rollup and re-evaluate based on the tuned risk scores from sessions
-    this.thResultsUsers.userCounts.forEach((obj, index) => {
-      obj.totalScore = 0;
-    })
-    for (var i=0; i < this.thResultsUsers.sessions.length; i++) {
-      for (var b=0; b < this.thResultsUsers.userCounts.length; b++) {
-        if (this.thResultsUsers.sessions[i].user === this.thResultsUsers.userCounts[b].user) {
-          this.thResultsUsers.userCounts[b].totalScore = this.thResultsUsers.userCounts[b].totalScore + this.thResultsUsers.sessions[i].riskScoreTuned;
-        }
-      }     
-    }
-    this.userData = this.thResultsUsers.userCounts;
-
-    //re-calcualte results of rule exceptions on event data
-    this.setEvents(this.selectedRule);
-    
-  }
 
   startValidation() {
     this.showValidation = true;
@@ -1587,8 +1694,8 @@ class Home {
 
   combineArrays() {
     this.summary = {};
-    this.summary.uniqueUsers = [];
-    this.summary.uniqueHosts = [];
+    this.summary.uniqueUsers = {};
+    this.summary.uniqueHosts = {};
     this.summary.uniqueIPs = [];
     this.summary.uniqueUserCount = 0;
     this.summary.uniqueHostCount = 0;
@@ -1693,25 +1800,49 @@ class Home {
     if(this.onPreviousSession) {
       this.bootstrapEventTypes();
     } else {
-      this.getEventTypes();
+      this.getAllEventTypes();
     }
+  }
+
+  getAllEventTypes() {
+    this.getAllEventsProgress = 'In Progress...';
+    chrome.tabs.sendMessage(this.tabID, {message: "allEventTypeSearch", queryUnit: this.queryUnit, queryUnitNum: this.queryUnitNum}, (response) => {
+      if(typeof response == 'undefined') {
+        console.log ('response is undefined');
+        this.errors.push('error fetching all Event Types. Trying again');
+        this.errorVisible = true;                 
+        this.getAllEventTypes();
+      } else {
+        this.getAllEventsProgress = 'Complete';
+        this.allEventTypes = {};
+        this.allEventTypes.eventTypes = response.eventTypes;
+        this.allEventTypes.totalCount = response.totalCount;
+        this.getEventTypes();
+      }
+
+    })
   }
 
   getEventTypes() {
     this.eventTypes = [];
-    this.rulesAndModels.forEach((obj,index) => {
+    this.allEventTypes.eventTypes.forEach((obj) => {
+      if(this.eventTypes.some(event => event.name === obj.key)) {
+      } else {
+        if(obj.key != 'session-end' && obj.key != 'sequence-end') this.eventTypes.push({name: obj.key, count: obj.count, inSession: false, inAsset: false});
+      }
+    })
+    this.rulesAndModels.forEach((obj) => {
       if(obj.populating != 'N/A') {
         obj.ruleDef.requiredEvents.forEach((obj2,index2) => {
           if(this.eventTypes.some(event => event.name === obj2)) {
           } else {
-            this.eventTypes.push({name: obj2});
+            if(obj.key != 'session-end' && obj.key != 'sequence-end') this.eventTypes.push({name: obj2, inSession: false, inAsset: false});
           }
         })
       }
     })
     
     this.getEventTypeSessions(0);  
-    
     
   }
 
@@ -1752,6 +1883,7 @@ class Home {
           this.activeEventTypes--
           this.eventTypes.forEach((obj2, index2) => {
             if(obj.name === obj2.name) {
+              // console.log('got response ',response);
               obj2.response = response;
               obj2.todoSessionIDs = [];
               obj2.todoAssetIDs = [];
@@ -1813,151 +1945,224 @@ class Home {
   }
 
   getTodoSessions() {
-    this.todoSessionIDs = [];
-    this.todoAssetIDs = []
+    this.todoIDs = {};
     for (var i=0; i < this.eventTypes.length; i++) {
-      if(typeof this.eventTypes[i].response.entities.session !== 'undefined') {
-        this.eventTypes[i].inSession = true;
-        this.eventTypes[i].sessionCount = this.eventTypes[i].response.entities.session.length;
-        this.eventTypes[i].totalCount = this.eventTypes[i].totalCount + this.eventTypes[i].response.entities.session.length;
-        for (var a=0; a < this.allowedSessionsPerEventType; a++) {
-          if(typeof this.eventTypes[i].response.entities.session[a] !== 'undefined') {
-            this.todoSessionIDs.push({
-              name: this.eventTypes[i].name,
-              sessionId: this.eventTypes[i].response.entities.session[a].sessionInfo.sessionId,
-              eventIds: [],
-              eventDetails: []
-            });
+      this.eventTypes[i].sessionCount = 0;
+      this.eventTypes[i].totalCount = 0;
+      for (var b=0; b < Object.keys(this.eventTypes[i].response.entities).length; b++) {
+        if(Object.keys(this.eventTypes[i].response.entities)[b] !== 'lockout') {
+          if(typeof this.todoIDs[Object.keys(this.eventTypes[i].response.entities)[b]] === 'undefined') {
+            this.todoIDs[Object.keys(this.eventTypes[i].response.entities)[b]] = [];
+          }
+          if(Object.keys(this.eventTypes[i].response.entities)[b] !== 'asset') {
+            this.eventTypes[i].inSession = true;
+            this.eventTypes[i].sessionCount = this.eventTypes[i].sessionCount + this.eventTypes[i].response.entities[Object.keys(this.eventTypes[i].response.entities)[b]].length;
+            this.eventTypes[i].totalCount = this.eventTypes[i].totalCount + this.eventTypes[i].response.entities[Object.keys(this.eventTypes[i].response.entities)[b]].length;
+            for (var a=0; a < this.allowedSessionsPerEventType; a++) {
+              if(Object.keys(this.eventTypes[i].response.entities)[b] === 'session') {
+                if(typeof this.eventTypes[i].response.entities[Object.keys(this.eventTypes[i].response.entities)[b]][a] !== 'undefined') {
+                  this.todoIDs[Object.keys(this.eventTypes[i].response.entities)[b]].push({
+                    name: this.eventTypes[i].name,
+                    id: this.eventTypes[i].response.entities[Object.keys(this.eventTypes[i].response.entities)[b]][a].sessionInfo.sessionId,
+                    eventIds: [],
+                    eventDetails: []
+                  });
+                }
+              } else {
+                if(typeof this.eventTypes[i].response.entities[Object.keys(this.eventTypes[i].response.entities)[b]][a] !== 'undefined') {
+                  this.todoIDs[Object.keys(this.eventTypes[i].response.entities)[b]].push({
+                    name: this.eventTypes[i].name,
+                    id: this.eventTypes[i].response.entities[Object.keys(this.eventTypes[i].response.entities)[b]][a].dataFeedInfo.sequenceId,
+                    eventIds: [],
+                    eventDetails: []
+                  });
+                }
+              }
+            }
+          } else {
+            this.eventTypes[i].inAsset = true;
+            this.eventTypes[i].sessionCount = this.eventTypes[i].sessionCount + this.eventTypes[i].response.entities[Object.keys(this.eventTypes[i].response.entities)[b]].length;
+            this.eventTypes[i].totalCount = this.eventTypes[i].totalCount + this.eventTypes[i].response.entities[Object.keys(this.eventTypes[i].response.entities)[b]].length;
+            for (var a=0; a < this.allowedSessionsPerEventType; a++) {
+              if(typeof this.eventTypes[i].response.entities[Object.keys(this.eventTypes[i].response.entities)[b]][a] !== 'undefined') {
+                this.todoIDs[Object.keys(this.eventTypes[i].response.entities)[b]].push({
+                  name: this.eventTypes[i].name,
+                  assetId: this.eventTypes[i].response.entities.asset[a].assetSequenceInfo.assetId,
+                  assetSequenceId: this.eventTypes[i].response.entities.asset[a].assetSequenceInfo.assetSequenceId,
+                  eventDetails: []
+                });
+              }
+            }
           }
         }
+        
       }
-      if(typeof this.eventTypes[i].response.entities.asset !== 'undefined') {
-        for (var a=0; a < this.allowedSessionsPerEventType; a++) {
-          if(typeof this.eventTypes[i].response.entities.asset[a] !== 'undefined') {
-            this.todoAssetIDs.push({
-              name: this.eventTypes[i].name,
-              assetId: this.eventTypes[i].response.entities.asset[a].assetSequenceInfo.assetId,
-              assetSequenceId: this.eventTypes[i].response.entities.asset[a].assetSequenceInfo.assetSequenceId,
-              eventDetails: []
-            });
-          }
-        }
+
+    }
+    // console.log('this.todoIDs = ',this.todoIDs);
+    this.todoEventTypeSessions = 0;
+    this.todoEventTypeAssets = 0;
+    for (var a=0; a < Object.keys(this.todoIDs).length; a++) {
+      if(Object.keys(this.todoIDs)[a] !== 'asset') {
+        this.todoEventTypeSessions = this.todoEventTypeSessions + this.todoIDs[Object.keys(this.todoIDs)[a]].length;
+      } else {
+        this.todoEventTypeAssets = this.todoEventTypeAssets + this.todoIDs[Object.keys(this.todoIDs)[a]].length;
       }
     }
-    // console.log('this.todoSessionIDs = ',this.todoSessionIDs);
-    // console.log('this.todoAssetIDs = ',this.todoAssetIDs);
-    this.todoEventTypeSessions = this.todoSessionIDs.length;
-    this.todoEventTypeAssets  =this.todoAssetIDs.length;
     this.getEventTypeSessionDetails();
   }
 
   getEventTypeSessionDetails(){
+    // console.log('started getEventTypeSessionDetails');
+    if(this.doneCountEventTypeSessions === this.todoEventTypeSessions) {
+      // console.log('this.doneCountEventTypeSessions === this.todoEventTypeSessions');
+      // console.log('moving to getTodoSessionEvents');
+      this.getTodoSessionEvents();
+    } 
     var tempSessions = 0
-    this.todoSessionIDs.forEach((obj) => {
-      if(this.doneEventTypeSessions.some(event => event.name === obj.name && event.sessionId === obj.sessionId)) {
-      } else {
-        if(tempSessions < this.allowedEventTypeCount) {
-          tempSessions++;
-          this.doneEventTypeSessions.push(obj);
-          axios('https://'+this.host+'/uba/api/sequence/events/eventType?sequenceType=session&sequenceId='+encodeURIComponent(obj.sessionId)+'&eventType='+obj.name+'&numberOfResults='+this.allowedEventsPerSession, {
-            method: 'GET',
-            withCredentials: 'include',
-          }).then(response => {
-            for (var i = 0; i < Object.keys(response.data).length; i++) {
-              obj.eventIds.push(response.data[i]);
+    for (var a=0; a < Object.keys(this.todoIDs).length; a++) {
+      if(Object.keys(this.todoIDs)[a] !== 'asset') {
+        this.todoIDs[Object.keys(this.todoIDs)[a]].forEach((obj) => {
+          if(this.doneEventTypeSessions.some(event => event.name === obj.name && event.id === obj.id)) {
+          } else {
+            if(tempSessions < this.allowedEventTypeCount) {
+              tempSessions++;
+              this.doneEventTypeSessions.push(obj);
+              axios('https://'+this.host+'/uba/api/sequence/events/eventType?sequenceType='+Object.keys(this.todoIDs)[a]+'&sequenceId='+encodeURIComponent(obj.id)+'&eventType='+obj.name+'&numberOfResults='+this.allowedEventsPerSession, {
+                method: 'GET',
+                withCredentials: 'include',
+              }).then(response => {
+                for (var i = 0; i < Object.keys(response.data).length; i++) {
+                  obj.eventIds.push(response.data[i]);
+                }
+                tempSessions--;
+                this.doneCountEventTypeSessions++                
+                this.dataValidationProgress = Math.round((((this.doneCountEventTypeSessions/this.todoEventTypeSessions) * 10) + 60));
+                  
+                if(tempSessions === 0) {
+                  if(this.doneCountEventTypeSessions < this.todoEventTypeSessions) {
+                    this.getEventTypeSessionDetails();
+                  } else {
+                    // console.log('this.doneCountEventTypeSessions !< this.todoEventTypeSessions');
+                    console.log('moving to getTodoSessionEvents');
+                    this.getTodoSessionEvents();
+                  }
+                }
+              }).catch(error => {
+                console.log(error);
+                this.errors.push('Error fetching single session for event type: '+obj.name);
+                this.errorVisible = true;
+              });
             }
-            tempSessions--;
-            this.doneCountEventTypeSessions++                
-            this.dataValidationProgress = Math.round((((this.doneCountEventTypeSessions/this.todoEventTypeSessions) * 10) + 60));
-              
-            if(tempSessions === 0) {
-              if(this.doneCountEventTypeSessions < this.todoEventTypeSessions) {
-                this.getEventTypeSessionDetails();
-              } else {
-                // console.log('Moving to Asset Event Details here');
-                // console.log('finished this.todoSessionIDs = ',this.todoSessionIDs);
-                this.getTodoSessionEvents();
-              }
-            }
-          }).catch(error => {
-            console.log(error);
-            this.errors.push('Error fetching single session for event type: '+obj.name);
-            this.errorVisible = true;
-          });
-        }
+          }
+        })
       }
-    })
-     
+    }
   }
 
   getTodoSessionEvents() {
+    // console.log('started getTodoSessionEvents');
     var tempSessionLength = 0;
-    for (var i=0; i < this.todoSessionIDs.length; i++) {
-      this.todoSessionIDs[i].eventIds.forEach((obj) => {
-        tempSessionLength++;
-      })
+    for (var a=0; a < Object.keys(this.todoIDs).length; a++) {
+      if(Object.keys(this.todoIDs)[a] !== 'asset') {
+        this.todoIDs[Object.keys(this.todoIDs)[a]].forEach((obj) => {
+          obj.eventIds.forEach((obj2) => {
+            tempSessionLength++;
+          })
+        })
+      }
     }
     this.todoEventTypeSessionsDetails = tempSessionLength;
     this.checkEventTypeSessionDetails();
   }
 
   checkEventTypeSessionDetails() {
+    // console.log('started checkEventTypeSessionDetails');
+    if(this.doneCountEventTypeSessionsDetails === this.todoEventTypeSessionsDetails) {
+      // console.log('this.doneCountEventTypeSessionsDetails === this.todoEventTypeSessionsDetails');
+      // console.log('moving to pushSessionEventDetails');
+      this.pushSessionEventDetails();
+    }
     var tempSessions = 0;
     var tempEvents = 0;
-    this.todoSessionIDs.forEach((obj) => {
-      if(this.doneEventTypeSessionsDetails.some(event => event.name === obj.name && event.sessionId === obj.sessionId)) {
-      } else {
-        if(tempSessions < this.allowedEventTypeSessionCount) {
-          tempSessions++;
-          this.doneEventTypeSessionsDetails.push(obj);
-          obj.eventIds.forEach((obj2) => {
-            tempEvents++;
-            axios('https://'+this.host+'/uba/api/timeline/events/start?username=*&startSequenceType=session&startSequenceId='+encodeURIComponent(obj.sessionId)+'&preferredNumberOfEvents=1&anomalyOnly=false&sequenceTypes=web&sequenceTypes=session&sequenceTypes=endpoint&sequenceTypes=file&startEventId='+obj2, {
-              method: 'GET',
-              withCredentials: 'include',
-            }).then(response => {
-              obj.eventDetails.push(response.data);
-              tempEvents--
-              this.doneCountEventTypeSessionsDetails++;               
-              this.dataValidationProgress = Math.round((((this.doneCountEventTypeSessionsDetails/this.todoEventTypeSessionsDetails) * 10) + 80));
-                
-              if(tempEvents === 0) {
-                tempSessions--;
+    for (var a=0; a < Object.keys(this.todoIDs).length; a++) {
+      if(Object.keys(this.todoIDs)[a] !== 'asset') {
+        // console.log('this.todoIDs['+Object.keys(this.todoIDs)[a]+'] = ',this.todoIDs[Object.keys(this.todoIDs)[a]]);
+        // console.log('this.doneEventTypeSessionsDetails = ',this.doneEventTypeSessionsDetails);
+        this.todoIDs[Object.keys(this.todoIDs)[a]].forEach((obj) => {
+          if(this.doneEventTypeSessionsDetails.some(event => event.name === obj.name && event.id === obj.id)) {
+          } else {
+            if(tempSessions < this.allowedEventTypeSessionCount) {
+              tempSessions++;
+              this.doneEventTypeSessionsDetails.push(obj);
+              if(obj.eventIds.length === 0) {
                 if(this.doneCountEventTypeSessionsDetails < this.todoEventTypeSessionsDetails) {
                   this.checkEventTypeSessionDetails();
                 } else {
+                  // console.log('this.doneCountEventTypeSessionsDetails !< this.todoEventTypeSessionsDetails');
+                  console.log('moving to pushSessionEventDetails');
                   this.pushSessionEventDetails();
-                  
                 }
               }
-            }).catch(error => {
-              console.log(error);
-              this.errors.push('Error fetching single session event for event type: '+obj.name);
-              this.errorVisible = true;
-            });
-          })
-        }
+              obj.eventIds.forEach((obj2) => {
+                tempEvents++;
+                axios('https://'+this.host+'/uba/api/timeline/events/start?username=*&startSequenceType='+Object.keys(this.todoIDs)[a]+'&startSequenceId='+encodeURIComponent(obj.id)+'&preferredNumberOfEvents=1&anomalyOnly=false&sequenceTypes=web&sequenceTypes=session&sequenceTypes=endpoint&sequenceTypes=file&startEventId='+obj2, {
+                  method: 'GET',
+                  withCredentials: 'include',
+                }).then(response => {
+                  obj.eventDetails.push(response.data);
+                  tempEvents--
+                  this.doneCountEventTypeSessionsDetails++;               
+                  this.dataValidationProgress = Math.round((((this.doneCountEventTypeSessionsDetails/this.todoEventTypeSessionsDetails) * 10) + 80));
+                    
+                  if(tempEvents === 0) {
+                    tempSessions--;
+                    if(this.doneCountEventTypeSessionsDetails < this.todoEventTypeSessionsDetails) {
+                      this.checkEventTypeSessionDetails();
+                    } else {
+                      // console.log('this.doneCountEventTypeSessionsDetails !< this.todoEventTypeSessionsDetails');
+                      console.log('moving to pushSessionEventDetails');
+                      this.pushSessionEventDetails();
+                    }
+                  }
+                }).catch(error => {
+                  console.log(error);
+                  this.errors.push('Error fetching single session event for event type: '+obj.name);
+                  this.errorVisible = true;
+                });
+              })
+            }
+          }
+        })
       }
-    })
+    }
   }
 
   pushSessionEventDetails() {
+    // console.log('started pushSessionEventDetails');
     for (var i=0; i < this.eventTypes.length; i++) {
-      for (var a=0; a < this.todoSessionIDs.length; a++) {
-        if(this.eventTypes[i].name === this.todoSessionIDs[a].name) {
-          this.todoSessionIDs[a].eventDetails.forEach((obj) => {
-            if(typeof obj.firstEvent !== 'undefined') {
-              if(typeof obj.aggregatedEvents[0].es[0].fields.rawlog_refs !== 'undefined') {
-                obj.firstEvent.fields.rawEventSearch = '{"rawlog_refs":'+JSON.stringify(obj.aggregatedEvents[0].es[0].fields.rawlog_refs)+'}';
-              }
-              Object.keys(obj.firstEvent.fields).forEach((obj6) => {
-                if(this.eventTypes[i].sessionEventFields.some(theField => theField.toLowerCase().replace(/ /g,"") === obj6.toLowerCase().replace(/ /g,""))) {
-                } else{
-                  this.eventTypes[i].sessionEventFields.push(obj6.toLowerCase().replace(/ /g,""));
+      for (var a=0; a < Object.keys(this.todoIDs).length; a++) {
+        if(Object.keys(this.todoIDs)[a] !== 'asset') {
+          this.todoIDs[Object.keys(this.todoIDs)[a]].forEach((obj) => {
+            if(this.eventTypes[i].name === obj.name) {
+              obj.eventDetails.forEach((obj2) => {
+                if(typeof obj2.firstEvent !== 'undefined') {
+                  if(this.eventTypes[i].sessionEventDetails.some(event => event.firstEvent.fields.event_id === obj2.firstEvent.event_id)) {
+                  } else {
+                    if(typeof obj2.aggregatedEvents[0].es[0].fields.rawlog_refs !== 'undefined') {
+                      obj2.firstEvent.fields.rawEventSearch = '{"rawlog_refs":'+JSON.stringify(obj2.aggregatedEvents[0].es[0].fields.rawlog_refs)+'}';
+                    }
+                    Object.keys(obj2.firstEvent.fields).forEach((obj6) => {
+                      if(this.eventTypes[i].sessionEventFields.some(theField => theField.toLowerCase().replace(/ /g,"") === obj6.toLowerCase().replace(/ /g,""))) {
+                      } else{
+                        this.eventTypes[i].sessionEventFields.push(obj6.toLowerCase().replace(/ /g,""));
+                      }
+                    })
+                    this.eventTypes[i].sessionEventDetails.push(obj2);
+                  }
                 }
               })
             }
-            this.eventTypes[i].sessionEventDetails.push(obj);                              
           })
         }
       }
@@ -1966,60 +2171,79 @@ class Home {
   }
 
   getEventTypeAssetDetails(){
+    // console.log('started getEventTypeAssetDetails');
+    if(this.doneCountEventTypeAssets === this.todoEventTypeAssets) {
+      // console.log('this.doneCountEventTypeAssets === this.todoEventTypeAssets');
+      console.log('moving to pushAssetEventDetails');
+      this.pushAssetEventDetails();
+    } 
     var tempSessions = 0
-    this.todoAssetIDs.forEach((obj) => {
-      if(this.doneEventTypeAssets.some(event => event.name === obj.name && event.assetId === obj.assetId && event.assetSequenceId === obj.assetSequenceId)) {
-      } else {
-        if(tempSessions < this.allowedEventTypeCount) {
-          tempSessions++;
-          this.doneEventTypeAssets.push(obj);
-          axios('https://'+this.host+'/uba/api/asset/timeline/events/start?assetId='+encodeURIComponent(obj.assetId)+'&startAssetSequenceId='+encodeURIComponent(obj.assetSequenceId)+'&preferredNumberOfEvents=5&anomalyOnly=false&eventCategories=*&sequenceTypes=asset&eventTypes='+obj.name+'&eventTypeInclude=true', {
-            method: 'GET',
-            withCredentials: 'include',
-          }).then(response => {
-            obj.eventDetails.push(response.data); 
-            tempSessions--
-            this.doneCountEventTypeAssets++                
-            this.dataValidationProgress = Math.round((((this.doneCountEventTypeAssets/this.todoEventTypeAssets) * 10) + 80));
-
-            if(tempSessions === 0) {
-              if(this.doneCountEventTypeAssets < this.todoEventTypeAssets) {
-                this.getEventTypeAssetDetails();
-              } else {
-                console.log('Moved on to pushAssetEventDetails here');
-                this.pushAssetEventDetails();
-              }
+    for (var a=0; a < Object.keys(this.todoIDs).length; a++) {
+      if(Object.keys(this.todoIDs)[a] === 'asset') {
+        this.todoIDs[Object.keys(this.todoIDs)[a]].forEach((obj) => {
+          if(this.doneEventTypeAssets.some(event => event.name === obj.name && event.assetId === obj.assetId && event.assetSequenceId === obj.assetSequenceId)) {
+          } else {
+            if(tempSessions < this.allowedEventTypeCount) {
+              tempSessions++;
+              this.doneEventTypeAssets.push(obj);
+              axios('https://'+this.host+'/uba/api/asset/timeline/events/start?assetId='+encodeURIComponent(obj.assetId)+'&startAssetSequenceId='+encodeURIComponent(obj.assetSequenceId)+'&preferredNumberOfEvents=5&anomalyOnly=false&eventCategories=*&sequenceTypes=asset&eventTypes='+obj.name+'&eventTypeInclude=true', {
+                method: 'GET',
+                withCredentials: 'include',
+              }).then(response => {
+                obj.eventDetails.push(response.data); 
+                tempSessions--
+                this.doneCountEventTypeAssets++                
+                this.dataValidationProgress = Math.round((((this.doneCountEventTypeAssets/this.todoEventTypeAssets) * 10) + 80));
+    
+                if(tempSessions === 0) {
+                  if(this.doneCountEventTypeAssets < this.todoEventTypeAssets) {
+                    this.getEventTypeAssetDetails();
+                  } else {
+                    // console.log('this.doneCountEventTypeAssets !< this.todoEventTypeAssets');
+                    console.log('moving to pushAssetEventDetails');
+                    this.pushAssetEventDetails();
+                  }
+                }
+              }).catch(error => {
+                console.log(error);
+                this.errors.push('Error fetching single session event for event type: '+obj.name);
+                this.errorVisible = true;
+              });
             }
-          }).catch(error => {
-            console.log(error);
-            this.errors.push('Error fetching single session event for event type: '+obj.name);
-            this.errorVisible = true;
-          });
-        }
+          }
+        })
       }
-    })
+    }
+    if(this.todoEventTypeAssets === 0) this.getRawEvents(0,0);
      
   }
 
   pushAssetEventDetails() {
     for (var i=0; i < this.eventTypes.length; i++) {
-      for (var a=0; a < this.todoAssetIDs.length; a++) {
-        if(this.eventTypes[i].name === this.todoAssetIDs[a].name) {
-          this.todoAssetIDs[a].eventDetails.forEach((obj) => {
-            if(typeof obj.firstEvent !== 'undefined') {
-              obj.aggregatedEvents[0].es.forEach((obj6) => {
-                if(typeof obj6.fields.rawlog_refs !== 'undefined') {
-                  obj6.fields.rawEventSearch = '{"rawlog_refs":'+JSON.stringify(obj6.fields.rawlog_refs)+'}';
+      for (var a=0; a < Object.keys(this.todoIDs).length; a++) {
+        if(Object.keys(this.todoIDs)[a] === 'asset') {
+          this.todoIDs[Object.keys(this.todoIDs)[a]].forEach((obj) => {
+            if(this.eventTypes[i].name === obj.name) {
+              obj.eventDetails.forEach((obj2) => {
+                if(typeof obj2.aggregatedEvents[0] !== 'undefined') {
+                  if(this.eventTypes[i].assetEventDetails.some(event => event.startSequenceId === obj2.startSequenceId)) {
+                  } else {
+                    obj2.aggregatedEvents[0].es.forEach((obj6) => {
+                      if(typeof obj6.fields.rawlog_refs !== 'undefined') {
+                        obj6.fields.rawEventSearch = '{"rawlog_refs":'+JSON.stringify(obj6.fields.rawlog_refs)+'}';
+                      }
+                      Object.keys(obj6.fields).forEach((obj7) => {
+                        if(this.eventTypes[i].assetEventFields.some(theField => theField.toLowerCase().replace(/ /g,"") === obj7.toLowerCase().replace(/ /g,""))) {
+                        } else{
+                          this.eventTypes[i].assetEventFields.push(obj7.toLowerCase().replace(/ /g,""));
+                          }
+                      })
+                    })
+                    this.eventTypes[i].assetEventDetails.push(obj2);
+                  }
                 }
-                Object.keys(obj6.fields).forEach((obj7) => {
-                  if(this.eventTypes[i].assetEventFields.some(theField => theField.toLowerCase().replace(/ /g,"") === obj7.toLowerCase().replace(/ /g,""))) {
-                  } else{
-                    this.eventTypes[i].assetEventFields.push(obj7.toLowerCase().replace(/ /g,""));
-                    }
-                })
               })
             }
-            this.eventTypes[i].assetEventDetails.push(obj);
           })
         }
       }
@@ -2255,6 +2479,7 @@ class Home {
   }
 
   bootstrapEventTypes(){
+    console.log('starting bootstrapEventTypes');
     this.eventTypes.forEach((obj2, index2) => {
       obj2.totalCount = 0;
       obj2.rules = [];
@@ -2270,59 +2495,40 @@ class Home {
       obj2.modelsPopulatingPercent = 0;
       obj2.rulesCouldTrigger = 0;
       obj2.rulesCouldTriggerPercent = 0;
-      obj2.uniqueUsersList = [];
-      obj2.uniqueHostsList = [];
-      obj2.uniqueIPsList = [];
+      obj2.uniqueUsersList = {};
+      obj2.uniqueHostsList = {};
       obj2.uniqueUsers = 0;
       obj2.uniqueHosts = 0;
       obj2.uniqueIPs = 0;
       if(obj2.response.entities.session != undefined) {
         obj2.response.entities.session.forEach((obj3,index3) => {
-          if(!obj3.sessionInfo.username.endsWith('$')) {                  
-            if(obj2.uniqueUsersList.some(user => user.name === obj3.sessionInfo.username.toLowerCase())) {
-            } else {
-              obj2.uniqueUsers = obj2.uniqueUsers + 1;
-              obj2.uniqueUsersList.push({'name':obj3.sessionInfo.username.toLowerCase()});
-            }
-            if(this.summary.uniqueUsers.some(user => user.name === obj3.sessionInfo.username.toLowerCase())) {
-            } else {
-              this.summary.uniqueUsers.push({'name':obj3.sessionInfo.username.toLowerCase()});
-              this.summary.uniqueUserCount = this.summary.uniqueUserCount + 1;
-            }
+          if(!obj3.sessionInfo.username.endsWith('$')) {
+            obj2.uniqueUsersList[obj3.sessionInfo.username.toLowerCase()] = {};
+            obj2.uniqueUsersList[obj3.sessionInfo.username.toLowerCase()].name = obj3.sessionInfo.username.toLowerCase();
+            this.summary.uniqueUsers[obj3.sessionInfo.username.toLowerCase()] = {};
+            this.summary.uniqueUsers[obj3.sessionInfo.username.toLowerCase()].name = obj3.sessionInfo.username.toLowerCase();
           }
         })
       }
       if(obj2.response.entities.asset != undefined) {
         obj2.response.entities.asset.forEach((obj3,index3) => {
           if(!((obj3.assetSequenceInfo.assetId.match(/\d\./g) || []).length === 3)) {
-            if(!((obj3.assetSequenceInfo.assetId.match(/\:/g) || []).length >= 1)) {                
-              if(obj2.uniqueHostsList.some(user => user.name === obj3.assetSequenceInfo.assetId.toLowerCase())) {
-              } else {
-                obj2.uniqueHosts = obj2.uniqueHosts + 1;
-                obj2.uniqueHostsList.push({'name':obj3.assetSequenceInfo.assetId.toLowerCase()});
-              }
-              if(this.summary.uniqueHosts.some(user => user.name === obj3.assetSequenceInfo.assetId.toLowerCase())) {
-              } else {
-                this.summary.uniqueHosts.push({'name':obj3.assetSequenceInfo.assetId.toLowerCase()});
-                this.summary.uniqueHostCount = this.summary.uniqueHostCount + 1;
-              }
+            if(!((obj3.assetSequenceInfo.assetId.match(/\:/g) || []).length >= 1)) {  
+              obj2.uniqueHostsList[obj3.assetSequenceInfo.assetId.toLowerCase()] = {};
+              obj2.uniqueHostsList[obj3.assetSequenceInfo.assetId.toLowerCase()].name = obj3.assetSequenceInfo.assetId.toLowerCase();
+              this.summary.uniqueHosts[obj3.assetSequenceInfo.assetId.toLowerCase()] = {};
+              this.summary.uniqueHosts[obj3.assetSequenceInfo.assetId.toLowerCase()].name = obj3.assetSequenceInfo.assetId.toLowerCase();              
             }
           }
         })
       }
       if(obj2.response.entities.lockout != undefined) {
         obj2.response.entities.lockout.forEach((obj3,index3) => {
-          if(!obj3.lockoutInfo.username.endsWith('$')) {                  
-            if(obj2.uniqueUsersList.some(user => user.name === obj3.lockoutInfo.username.toLowerCase())) {
-            } else {
-              obj2.uniqueUsers = obj2.uniqueUsers + 1;
-              obj2.uniqueUsersList.push({'name':obj3.lockoutInfo.username.toLowerCase()});
-            }
-            if(this.summary.uniqueUsers.some(user => user.name === obj3.lockoutInfo.username.toLowerCase())) {
-            } else {
-              this.summary.uniqueUsers.push({'name':obj3.lockoutInfo.username.toLowerCase()});
-              this.summary.uniqueUserCount = this.summary.uniqueUserCount + 1;
-            }
+          if(!obj3.lockoutInfo.username.endsWith('$')) {
+            obj2.uniqueUsersList[obj3.lockoutInfo.username.toLowerCase()] = {};
+            obj2.uniqueUsersList[obj3.lockoutInfo.username.toLowerCase()].name = obj3.lockoutInfo.username.toLowerCase();
+            this.summary.uniqueUsers[obj3.lockoutInfo.username.toLowerCase()] = {};
+            this.summary.uniqueUsers[obj3.lockoutInfo.username.toLowerCase()].name = obj3.lockoutInfo.username.toLowerCase();                  
           }
         })
       }
@@ -2332,17 +2538,11 @@ class Home {
       })
       obj2.sequenceTypes.forEach((obj3,index3) => {
         obj2.response.entities[obj3].forEach((obj4,index4) => {
-          if(!obj4.dataFeedInfo.username.endsWith('$')) {                  
-            if(obj2.uniqueUsersList.some(user => user.name === obj4.dataFeedInfo.username.toLowerCase())) {
-            } else {
-              obj2.uniqueUsers = obj2.uniqueUsers + 1;
-              obj2.uniqueUsersList.push({'name':obj4.dataFeedInfo.username.toLowerCase()});
-            }
-            if(this.summary.uniqueUsers.some(user => user.name === obj4.dataFeedInfo.username.toLowerCase())) {
-            } else {
-              this.summary.uniqueUsers.push({'name':obj4.dataFeedInfo.username.toLowerCase()});
-              this.summary.uniqueUserCount = this.summary.uniqueUserCount + 1;
-            }
+          if(!obj4.dataFeedInfo.username.endsWith('$')) {
+            obj2.uniqueUsersList[obj4.dataFeedInfo.username.toLowerCase()] = {};
+            obj2.uniqueUsersList[obj4.dataFeedInfo.username.toLowerCase()].name = obj4.dataFeedInfo.username.toLowerCase();
+            this.summary.uniqueUsers[obj4.dataFeedInfo.username.toLowerCase()] = {};
+            this.summary.uniqueUsers[obj4.dataFeedInfo.username.toLowerCase()].name = obj4.dataFeedInfo.username.toLowerCase();                  
           }
         })
       })
@@ -2378,11 +2578,26 @@ class Home {
       }             
     })
      
+    this.sumCounts();
+  }
+
+  sumCounts() {
+    for(let i=0; i < this.eventTypes.length; i++) {
+      this.eventTypes[i].uniqueUsersList = Object.values(this.eventTypes[i].uniqueUsersList);
+      this.eventTypes[i].uniqueUsers = this.eventTypes[i].uniqueUsersList.length;
+      this.eventTypes[i].uniqueHostsList = Object.values(this.eventTypes[i].uniqueHostsList);
+      this.eventTypes[i].uniqueHosts = this.eventTypes[i].uniqueHostsList.length;
+      this.summary.uniqueUsers = Object.values(this.summary.uniqueUsers);
+      this.summary.uniqueHosts = Object.values(this.summary.uniqueHosts);
+      this.summary.uniqueUserCount = this.summary.uniqueUsers.length;
+      this.summary.uniqueHostCount = this.summary.uniqueHosts.length;
+    }
     this.checkFeature();
   }
 
 
   checkFeature(){
+    console.log('starting checkFeature');
     this.rulesAndModels.forEach((obj,index) => {
       if(obj.modelDef != undefined) { 
         obj.featurePresent = 'false';
@@ -2434,6 +2649,7 @@ class Home {
   }
 
   checkMissingEvents() {
+    console.log('starting checkMissingEvents');
     this.rulesAndModels.forEach((obj,index) => {
       this.eventTypes.forEach((obj2,index2) => {
         if(obj.ruleDef.requiredEvents.some(type => type === obj2.name)) {
@@ -2460,102 +2676,103 @@ class Home {
 
 
   addEventDetails() {
-    var doneCount = 0;
-    this.rulesAndModels.forEach((obj,index) => {
-      obj.eventInRuleType = 'false';
-      obj.presentEventTypes = [];
-      this.eventTypes.forEach((obj2, index2) => {
-        if(obj.ruleDef.requiredEvents.some(types => types === obj2.name)) {
-          obj2.rules.push(obj.ruleDef);
-          if(obj.modelDef != undefined) {
-            obj2.models.push(obj.modelDef);
-            if(obj.modelDef.populating) obj.ruleDef.modelPopulating = true;
+    console.log('starting addEventDetails');
+    for (var i=0; i < this.rulesAndModels.length; i++) {
+      this.rulesAndModels[i].eventInRuleType = 'false';
+      this.rulesAndModels[i].presentEventTypes = [];
+      for (var a=0; a < this.eventTypes.length; a++) {
+        if(this.rulesAndModels[i].ruleDef.requiredEvents.some(types => types === this.eventTypes[a].name)) {
+          this.eventTypes[a].rules.push(this.rulesAndModels[i].ruleDef);
+          if(this.rulesAndModels[i].modelDef != undefined) {
+            this.eventTypes[a].models.push(this.rulesAndModels[i].modelDef);
+            if(this.rulesAndModels[i].modelDef.populating) this.rulesAndModels[i].ruleDef.modelPopulating = true;
           } 
-          if(obj2.sessionCount != undefined) {
-            obj.inSessions = 'true';
-            if(obj.ruleDef.ruleType === 'session') {
-              obj.presentEventTypes.push(obj2.name);
-              obj.eventInRuleType = 'true';
+          if(this.eventTypes[a].sessionCount != undefined) {
+            this.rulesAndModels[i].inSessions = 'true';
+            if(this.rulesAndModels[i].ruleDef.ruleType === 'session') {
+              this.rulesAndModels[i].presentEventTypes.push(this.eventTypes[a].name);
+              this.rulesAndModels[i].eventInRuleType = 'true';
             } 
           } else {
-            obj.inSessions = 'false';
+            this.rulesAndModels[i].inSessions = 'false';
           }
-          if(obj2.assetCount != undefined) {
-            obj.inAssets = 'true';
-            if(obj.ruleDef.ruleType === 'asset') {
-              obj.presentEventTypes.push(obj2.name);
-              obj.eventInRuleType = 'true';
+          if(this.eventTypes[a].assetCount != undefined) {
+            this.rulesAndModels[i].inAssets = 'true';
+            if(this.rulesAndModels[i].ruleDef.ruleType === 'asset') {
+              this.rulesAndModels[i].presentEventTypes.push(this.eventTypes[a].name);
+              this.rulesAndModels[i].eventInRuleType = 'true';
             }
           } else {
-            obj.inAssets = 'false';
+            this.rulesAndModels[i].inAssets = 'false';
           }
-          if(obj2.endpointCount != undefined) {
-            obj.inEndpoints = 'true';
-            if(obj.ruleDef.ruleType === 'endpoint') {
-              obj.presentEventTypes.push(obj2.name);
-              obj.eventInRuleType = 'true';
+          if(this.eventTypes[a].endpointCount != undefined) {
+            this.rulesAndModels[i].inEndpoints = 'true';
+            if(this.rulesAndModels[i].ruleDef.ruleType === 'endpoint') {
+              this.rulesAndModels[i].presentEventTypes.push(this.eventTypes[a].name);
+              this.rulesAndModels[i].eventInRuleType = 'true';
             }
           } else {
-            obj.inEndpoints = 'false';
+            this.rulesAndModels[i].inEndpoints = 'false';
           }
-          if(obj2.fileCount != undefined) {
-            obj.inFiles = 'true';
-            if(obj.ruleDef.ruleType === 'file') {
-              obj.presentEventTypes.push(obj2.name);
-              obj.eventInRuleType = 'true';
+          if(this.eventTypes[a].fileCount != undefined) {
+            this.rulesAndModels[i].inFiles = 'true';
+            if(this.rulesAndModels[i].ruleDef.ruleType === 'file') {
+              this.rulesAndModels[i].presentEventTypes.push(this.eventTypes[a].name);
+              this.rulesAndModels[i].eventInRuleType = 'true';
             }
           } else {
-            obj.inFiles = 'false';
+            this.rulesAndModels[i].inFiles = 'false';
           }
-          if(obj2.webCount != undefined) {
-            obj.inWebs = 'true';
-            if(obj.ruleDef.ruleType === 'web') {
-              obj.presentEventTypes.push(obj2.name);
-              obj.eventInRuleType = 'true';
+          if(this.eventTypes[a].webCount != undefined) {
+            this.rulesAndModels[i].inWebs = 'true';
+            if(this.rulesAndModels[i].ruleDef.ruleType === 'web') {
+              this.rulesAndModels[i].presentEventTypes.push(this.eventTypes[a].name);
+              this.rulesAndModels[i].eventInRuleType = 'true';
             }
           } else {
-            obj.inWebs = 'false';
+            this.rulesAndModels[i].inWebs = 'false';
           }
-          if(obj2.databaseCount != undefined) {
-            obj.inDatabase = 'true';
-            if(obj.ruleDef.ruleType === 'database') {
-              obj.presentEventTypes.push(obj2.name);
-              obj.eventInRuleType = 'true';
+          if(this.eventTypes[a].databaseCount != undefined) {
+            this.rulesAndModels[i].inDatabase = 'true';
+            if(this.rulesAndModels[i].ruleDef.ruleType === 'database') {
+              this.rulesAndModels[i].presentEventTypes.push(this.eventTypes[a].name);
+              this.rulesAndModels[i].eventInRuleType = 'true';
             }
           } else {
-            obj.inDatabase = 'false';
+            this.rulesAndModels[i].inDatabase = 'false';
           }
-          if(obj2.lockoutCount != undefined) {
-            obj.inLockouts = 'true';
-            if(obj.ruleDef.ruleType === 'account-lockout') {
-              obj.presentEventTypes.push(obj2.name);
-              obj.eventInRuleType = 'true';
+          if(this.eventTypes[a].lockoutCount != undefined) {
+            this.rulesAndModels[i].inLockouts = 'true';
+            if(this.rulesAndModels[i].ruleDef.ruleType === 'account-lockout') {
+              this.rulesAndModels[i].presentEventTypes.push(this.eventTypes[a].name);
+              this.rulesAndModels[i].eventInRuleType = 'true';
             }
           } else {
-            obj.inLockouts = 'false';
+            this.rulesAndModels[i].inLockouts = 'false';
           }
-          obj2.ruleCount = obj2.rules.length;
-          obj2.modelCount = obj2.models.length;
+          this.eventTypes[a].ruleCount = this.eventTypes[a].rules.length;
+          this.eventTypes[a].modelCount = this.eventTypes[a].models.length;
           //console.log('still in loop');
         }
-      })
-      doneCount = doneCount + 1;
-      if(doneCount === this.rulesAndModels.length) {      
-        this.rulesAndModelsDone = this.rulesAndModels;
-        this.rulesAndModels = [];
-         
-        this.columns6 = [
-          { field: 'ruleCat', header: 'Rule Category' },
-          { field: 'ruleId', header: 'Rule ID' },
-          { field: 'ruleName', header: 'Rule Name' },
-          { field: 'modelName', header: 'Model' },
-          { field: 'eventInRuleType', header: 'Events Present' },
-          { field: 'populating', header: 'Model Populating' },
-          { field: 'hasTriggered', header: 'Has Triggered' }
-        ];
-      } 
-    })
+      }
+    }
+    console.log('doneCount === this.rulesAndModels.length');
+    console.log('this.eventTypes = ',this.eventTypes);     
+    this.rulesAndModelsDone = this.rulesAndModels;
+    this.rulesAndModels = [];
+      
+    this.columns6 = [
+      { field: 'ruleCat', header: 'Rule Category' },
+      { field: 'ruleId', header: 'Rule ID' },
+      { field: 'ruleName', header: 'Rule Name' },
+      { field: 'modelName', header: 'Model' },
+      { field: 'eventInRuleType', header: 'Events Present' },
+      { field: 'populating', header: 'Model Populating' },
+      { field: 'hasTriggered', header: 'Has Triggered' }
+    ];
+  
     this.eventTypes.forEach((obj2, index2) => {
+      console.log('starting next loop on eventTypes');
       obj2.models.forEach((obj3, index2) => {
         if(obj3.populating) {
           obj2.modelsPopulating = obj2.modelsPopulating + 1;
@@ -2631,6 +2848,7 @@ class Home {
   }
 
   determineSources(eventTypes) {
+    console.log('starting determineSources');
     this.sources = [];
     this.sourcesDone = [];
     eventTypes.forEach((obj) => {
@@ -2656,7 +2874,6 @@ class Home {
               'src_host': [],
               'dest_ip': [],
               'dest_host': [],
-              'host': [],
               'user': []
             },
             'aaAssetEventParsingIssues': {
@@ -2664,7 +2881,6 @@ class Home {
               'src_host': [],
               'dest_ip': [],
               'dest_host': [],
-              'host': [],
               'user': []
             },
             'aaSessionEventFieldCounts':{
@@ -2672,7 +2888,6 @@ class Home {
               'src_host': 0,
               'dest_ip': 0,
               'dest_host': 0,
-              'host': 0,
               'user': 0
             },
             'dlSessionEventFieldCounts':{
@@ -2680,7 +2895,6 @@ class Home {
               'src_host': 0,
               'dest_ip': 0,
               'dest_host': 0,
-              'host': 0,
               'user': 0
             },
             'aaAssetEventFieldCounts':{
@@ -2688,7 +2902,6 @@ class Home {
               'src_host': 0,
               'dest_ip': 0,
               'dest_host': 0,
-              'host': 0,
               'user': 0
             },
             'dlAssetEventFieldCounts':{
@@ -2696,7 +2909,6 @@ class Home {
               'src_host': 0,
               'dest_ip': 0,
               'dest_host': 0,
-              'host': 0,
               'user': 0
             },
             'sessionRawEventCount': 0,
@@ -2732,7 +2944,6 @@ class Home {
                   'src_host': [],
                   'dest_ip': [],
                   'dest_host': [],
-                  'host': [],
                   'user': []
                 },
                 'aaAssetEventParsingIssues': {
@@ -2740,7 +2951,6 @@ class Home {
                   'src_host': [],
                   'dest_ip': [],
                   'dest_host': [],
-                  'host': [],
                   'user': []
                 },
                 'aaSessionEventFieldCounts':{
@@ -2748,7 +2958,6 @@ class Home {
                   'src_host': 0,
                   'dest_ip': 0,
                   'dest_host': 0,
-                  'host': 0,
                   'user': 0
                 },
                 'dlSessionEventFieldCounts':{
@@ -2756,7 +2965,6 @@ class Home {
                   'src_host': 0,
                   'dest_ip': 0,
                   'dest_host': 0,
-                  'host': 0,
                   'user': 0
                 },
                 'aaAssetEventFieldCounts':{
@@ -2764,7 +2972,6 @@ class Home {
                   'src_host': 0,
                   'dest_ip': 0,
                   'dest_host': 0,
-                  'host': 0,
                   'user': 0
                 },
                 'dlAssetEventFieldCounts':{
@@ -2772,7 +2979,6 @@ class Home {
                   'src_host': 0,
                   'dest_ip': 0,
                   'dest_host': 0,
-                  'host': 0,
                   'user': 0
                 },
                 'sessionRawEventCount': 0,
@@ -2819,7 +3025,6 @@ class Home {
               }
             } 
             if(typeof obj2.firstEvent.fields.dest_host !== 'undefined') obj3.aaSessionEventFieldCounts.dest_host++;
-            if(typeof obj2.firstEvent.fields.host !== 'undefined') obj3.aaSessionEventFieldCounts.host++;
             if(typeof obj2.firstEvent.fields.user !== 'undefined') {
               if(obj2.firstEvent.fields.user !== 'system' && !obj2.firstEvent.fields.user.endsWith('$') && !obj2.firstEvent.fields.user.includes('*') && 
               !obj2.firstEvent.fields.user.includes('anonymous') && obj2.firstEvent.fields.event_type !== 'failed-logon' && 
@@ -2860,13 +3065,6 @@ class Home {
                   obj3.aaSessionEventParsingIssues.dest_host.push({parsedInDL:obj2.firstEvent.fields.dlEvent.dest_host,parsedInAA:'',fullEvent:obj2.firstEvent.fields});
                 } 
                 obj3.dlSessionEventFieldCounts.dest_host++;
-              } 
-              if(typeof obj2.firstEvent.fields.dlEvent.host !== 'undefined') {
-                if(typeof obj2.firstEvent.fields.host === 'undefined') {
-                  obj3.parsingIssues++;
-                  obj3.aaSessionEventParsingIssues.host.push({parsedInDL:obj2.firstEvent.fields.dlEvent.host,parsedInAA:'',fullEvent:obj2.firstEvent.fields});
-                } 
-                obj3.dlSessionEventFieldCounts.host++;
               } 
               if(typeof obj2.firstEvent.fields.dlEvent.user !== 'undefined') {
                 if(obj2.firstEvent.fields.event_type !== 'failed-logon' && obj2.firstEvent.fields.event_type !== 'computer-logon' && obj2.firstEvent.fields.dlEvent.user !== 'system' && 
@@ -2925,7 +3123,6 @@ class Home {
                   }
                 } 
                 if(typeof obj6.fields.dest_host !== 'undefined') obj3.aaAssetEventFieldCounts.dest_host++;
-                if(typeof obj6.fields.host !== 'undefined') obj3.aaAssetEventFieldCounts.host++;
                 if(typeof obj6.fields.user !== 'undefined') {
                   if(obj6.fields.user !== 'system' && !obj6.fields.user.endsWith('$') && !obj6.fields.user.includes('*') && 
                   !obj6.fields.user.includes('anonymous') && obj6.fields.event_type !== 'failed-logon' && 
@@ -2967,13 +3164,6 @@ class Home {
                     } 
                     obj3.dlAssetEventFieldCounts.dest_host++;
                   } 
-                  if(typeof obj6.fields.dlEvent.host !== 'undefined') {
-                    if(typeof obj6.fields.host === 'undefined') {
-                      obj3.parsingIssues++;
-                      obj3.aaAssetEventParsingIssues.host.push({parsedInDL:obj6.fields.dlEvent.host,parsedInAA:'',fullEvent:obj6.fields});
-                    } 
-                    obj3.dlAssetEventFieldCounts.host++;
-                  } 
                   if(typeof obj6.fields.dlEvent.user !== 'undefined') {
                     if(obj6.fields.event_type !== 'failed-logon' && obj6.fields.event_type !== 'computer-logon' && obj6.fields.dlEvent.user !== 'system' && !obj6.fields.dlEvent.user.endsWith('$') && 
                     !obj6.fields.dlEvent.user.includes('*') && !obj6.fields.dlEvent.user.includes('anonymous')) {
@@ -2997,15 +3187,104 @@ class Home {
         
       })     
     })
-    console.log('data validation done');
-    this.sourcesDone = this.sources;
-    this.sources = {};
-    this.eventTypesDone = this.eventTypes;
-    this.eventTypes = [];
-    this.loading = false;
-    this.visibleDataValidationProgress = false;
-    this.storeValidationSession();
     
+    this.checkMissingSources();
+    
+  }
+
+  checkMissingSources() {
+    if(typeof this.todoIDs === 'undefined') this.todoIDs = {};
+    this.missingSources = false;
+    for(let i=0; i < this.sources.length; i++) {
+      if(this.sources[i].inSession === true && this.sources[i].inAsset === false) {
+        this.sources[i].sessionEvents.forEach((obj3) => {
+          if(typeof obj3.entity_asset_id !== 'undefined') {
+            if(typeof this.todoIDs.asset === 'undefined') this.todoIDs.asset = [];
+            if(this.todoIDs.asset.some(theEvent => theEvent.name === this.sources[i].name && theEvent.assetSequenceId === obj3.entity_asset_id[0])) {
+            } else {
+              this.todoIDs.asset.push({
+                name: this.sources[i].name,
+                assetId: obj3.entity_asset_id[0].split('@')[1].substr(0, obj3.entity_asset_id[0].split('@')[1].lastIndexOf('-')),
+                assetSequenceId: obj3.entity_asset_id[0],
+                eventDetails: []
+              });
+              console.log('found missing entity events for ',this.sources[i].name);
+              this.missingSources = true;
+            }
+            
+          } else if(typeof obj3.src_host !== 'undefined') {
+
+          } else if(typeof obj3.dest_host !== 'undefined') {
+
+          }
+        })
+      }
+      if(this.sources[i].inAsset === true && this.sources[i].inSession === false) {
+        this.sources[i].assetEvents.forEach((obj3) => {
+          if(typeof obj3.session_id !== 'undefined') {
+            if(typeof this.todoIDs.session === 'undefined') this.todoIDs.session = [];
+            if(this.todoIDs.session.some(theEvent => theEvent.name === this.sources[i].name && theEvent.id === obj3.session_id)) {
+            } else {
+              this.todoIDs.session.push({
+                name: this.sources[i].name,
+                id: obj3.session_id,
+                eventIds: [],
+                eventDetails: []
+              });
+              console.log('found missing session events for ',this.sources[i].name);
+              this.missingSources = true;
+            }
+            
+          } else {
+            for(let a=0; a<Object.keys(obj3).length; a++) {
+              if(Object.keys(obj3)[a].startsWith('feed_') && Object.keys(obj3)[a].endsWith('_id')){
+                if(typeof this.todoIDs[Object.keys(obj3)[a].split(/[_]/)[1]] === 'undefined') this.todoIDs[Object.keys(obj3)[a].split(/[_]/)[1]] = [];
+                if(this.todoIDs[Object.keys(obj3)[a].split(/[_]/)[1]].some(theEvent => theEvent.name === this.sources[i].name && theEvent.id === obj3[Object.keys(obj3)[a]])) {
+                } else {
+                  this.todoIDs[Object.keys(obj3)[a].split(/[_]/)[1]].push({
+                    name: this.sources[i].name,
+                    id: obj3[Object.keys(obj3)[a]],
+                    eventIds: [],
+                    eventDetails: []
+                  });
+                  console.log('found missing feed events for ',this.sources[i].name);
+                  this.missingSources = true;
+                }               
+              }
+            }
+          }
+        })
+      }
+    }
+    if(this.missingSources === true) {
+      console.log('sources missing and this.todoIDs = ',this.todoIDs);
+      this.todoEventTypeSessions = 0;
+      this.todoEventTypeAssets = 0;
+      for (var a=0; a < Object.keys(this.todoIDs).length; a++) {
+        if(Object.keys(this.todoIDs)[a] !== 'asset') {
+          this.todoEventTypeSessions = this.todoEventTypeSessions + this.todoIDs[Object.keys(this.todoIDs)[a]].length;
+        } else {
+          this.todoEventTypeAssets = this.todoEventTypeAssets + this.todoIDs[Object.keys(this.todoIDs)[a]].length;
+        }
+      }
+      console.log('sources missing after for loop');
+      this.doneCountEventTypeSessions = this.doneEventTypeSessions.length;
+      this.doneCountEventTypeAssets = this.doneEventTypeAssets.length;
+      console.log('sources missing and starting getEventTypeSessionDetails');
+      this.getEventTypeSessionDetails();
+    } else {
+      console.log('data validation done');
+      console.log('this.eventTypes = ',this.eventTypes);
+      this.sourcesDone = this.sources;
+      this.sources = {};
+      this.eventTypesDone = this.eventTypes;
+      console.log('this.eventTypesDone = ',this.eventTypesDone);
+      this.eventTypes = [];
+      this.loading = false;
+      this.visibleDataValidationProgress = false;
+      this.storeValidationSession();
+    }
+
   }
 
   onEventTypesSelect(required,present) {
@@ -3041,7 +3320,6 @@ class Home {
   }
 
   onSessionsSelect(sessions) {
-    console.log('this.selectedSessionList = ',this.selectedSessionList);
     this.selectedSessionList = sessions;
     this.visibleSessionList = true;
   }
@@ -3082,6 +3360,10 @@ class Home {
     this.assetParsingIssues = assetEvents;
     this.visibleParsingIssues = true;
     
+  }
+
+  onUpdateIssueSelect() {
+    this.visibleUpdateIssues = true;
   }
 
     
