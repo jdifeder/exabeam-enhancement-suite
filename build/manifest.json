@@ -1,13 +1,17 @@
 {
     "name": "Exabeam Enhancement Suite",
-    "version": "0.3",
+    "version": "0.2",
     "description": "Enhance Exabeam Advanced Analytics",
-    "manifest_version": 2,
+    "manifest_version": 3,
     "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsUyZX8wycL6zY104rYgQNdF3umqlPt4h+m6gaWphUrCI+joNVLgVhHNS1hZVeMJ7T7cVRUKu7/b3c2ylT/u8+XxvpP+4ind7Dj5y6wbVKFnPn+POgb891dL/f+eDS1nfPUrJHO+fdoKaES/1IabubGfRP7RXQzvu2tp3XdIcYQe0aUbT9GxmEu7F8pEeNbfcm0OwhhSrLdHa+T7NTruCl8FxKrldXcZJPc6UKFKxGYl7/xz6kKaj7URZfy9vwOurlv5OqkyxZkfGeUjCFhhrR9ANU1RDTCjF09NaKEMmihI4u9FmRME3YHeKHrDlE4tC7Biny8OJ+XEsutCIINzSuQIDAQAB",
-    "permissions": [
+    "permissions":
+    [
         "tabs",
         "activeTab",
-        "webNavigation",
+        "webNavigation"
+    ],
+    "host_permissions":
+    [
         "<all_urls>",
         "https://*/uba/*",
         "https://api.github.com/*",
@@ -22,6 +26,8 @@
         }
     ],
     "web_accessible_resources": [
+        {
+        "resources":[
         "index.html",
         "*.css",
         "*.js",
@@ -39,7 +45,11 @@
         "static/media/*.svg",
         "static/media/*.ttf",
         "static/media/*.eot",
-        "static/media/*.woff"
+        "static/media/*.woff"],
+        "matches":["<all_urls>"]
+        }
     ]
+
+
 
 }
