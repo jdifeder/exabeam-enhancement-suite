@@ -41,7 +41,7 @@ configure({
 
 Sentry.init({ 
   dsn: "https://2bb4d42f4f9e450faa2c83c91b87876e@o187074.ingest.sentry.io/5699993",
-  release: "exabeam-enhancement-suite@0.300",
+  release: "exabeam-enhancement-suite@0.400",
  });
 
 var versionNumber = '';

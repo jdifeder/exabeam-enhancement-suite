@@ -624,6 +624,20 @@ class Home {
     this.doneCountSessions = 0;
     this.doneCountTimelines = 0;
     //Grab all the session IDs from the TH query and put them in a new array
+    if(this.arrayType === 'asset' && typeof this.thResults.entities.asset === 'undefined') {
+      alert('No session matches for query. Change query options and try again');
+      this.showLogin = true;
+      this.showHome = true;
+      this.loading = false;
+      this.showTuning = false;
+    }
+    if(this.arrayType === 'session' && typeof this.thResults.entities.session === 'undefined') {
+      alert('No session matches for query. Change query options and try again');
+      this.showLogin = true;
+      this.showHome = true;
+      this.loading = false;
+      this.showTuning = false;
+    }  
     if(this.arrayType === 'asset' && typeof this.thResults.entities.asset !== 'undefined') {
       for (this.index = 0; this.index < this.thResults.entities.asset.length; this.index++) { 
         this.thResultsUsers.sessions[this.index] = {}

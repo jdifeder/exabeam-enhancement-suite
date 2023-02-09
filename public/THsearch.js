@@ -1,5 +1,5 @@
 const host = location.host;
-const versionNumber = 0.300;
+const versionNumber = 0.400;
 
 var ifrm = document.createElement('iframe');
 // assign an id
